@@ -22,20 +22,20 @@ const darkTheme = {
 
 const lightTheme = {
   name: 'light',
-  background: '#f8f9fa',
-  secondary: '#eaecef',
-  border: '#dde0e4',
-  text: '#4a4a4a',
-  textStrong: '#2d2d2d',
-  accent: '#ff8c00',
-  accentHover: '#ff9d1a',
-  error: '#d93025',
-  errorHover: '#b31412',
-  success: '#1e8e3e',
-  messageBackground: '#f0f2f5',
+  background: '#ffffff',
+  secondary: '#fff5eb',  // Soft orange tint
+  border: '#ffe4d4',     // Light peach
+  text: '#4f3338',       // Muted wine
+  textStrong: '#2c1810', // Deep wine
+  accent: '#ff7043',     // Vibrant orange
+  accentHover: '#e64a19',// Darker orange
+  error: '#b71c1c',      // Deep red
+  errorHover: '#931515', 
+  success: '#2e7d32',    // Keeping success green for good UX
+  messageBackground: '#fef8f8', // Very light wine tint
   inputBackground: '#ffffff',
-  scrollbarTrack: '#eaecef',
-  scrollbarThumb: '#c8ccd1',
+  scrollbarTrack: '#fff0e6', // Light orange tint
+  scrollbarThumb: '#d4846f', // Muted wine-orange
 };
 
 const globalStyles = css`
@@ -58,7 +58,7 @@ const Container = styled.div`
 `;
 
 const Header = styled.header`
-  background-color: ${props => props.theme.secondary};
+  background-color: ${props => props.theme.border};
   padding: 1rem;
   border-bottom: 1px solid ${props => props.theme.border};
   display: flex;
@@ -202,7 +202,7 @@ const Button = styled.button`
   }
 
   &:disabled {
-    background-color: ${props => props.theme.text}80;
+    background-color: ${props => props.theme.accent}80;
     cursor: not-allowed;
   }
 `;
@@ -377,7 +377,7 @@ const LamaChat = () => {
     <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
       <Container>
         <Header>
-          <Title>Lever Chat</Title>
+          <Title>LevChat</Title>
           <HeaderGroup>
             <StatusIndicator isConnected={isConnected}>
               {isConnected}
