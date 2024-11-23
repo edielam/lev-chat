@@ -15,10 +15,8 @@ use tauri::api::path;
 use crate::lam::llamautils::RAGProcessor;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::sync::{Arc, RwLock};
-use once_cell::sync::Lazy;
 
-#[derive(Serialize, Clone, Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct LlamaJobConfig {
     prompt: String,
     model_name: Option<String>, 
@@ -32,14 +30,6 @@ struct JobStatus {
     job_id: String,
     status: String,
 }
-#[derive(Clone, Default)]
-struct SharedConfig {
-    prompt: String,
-}
-
-static SHARED_CONFIG: Lazy<Arc<RwLock<SharedConfig>>> = Lazy::new(|| {
-    Arc::new(RwLock::new(SharedConfig::default()))
-});
 
 const PTY_SERVER_ADDRESS: &str = "127.0.0.1:15555";
 const TOP_N_CONTEXTS: usize = 3; 
@@ -96,7 +86,6 @@ fn find_gguf_model(workspace_path: &str) -> Result<PathBuf, String> {
         .map(|entry| entry.path())
         .ok_or_else(|| "No .gguf model found in model directory".to_string())
 }
-
 fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str) -> Result<CommandBuilder, String> {
     let prompt = if config.prompt.starts_with("RAG-") {
         let base_prompt = config.prompt.strip_prefix("RAG-").unwrap();
@@ -135,13 +124,6 @@ fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str) -> Res
     if let Some(tokens) = config.max_tokens {
         command_str.push_str(&format!(" -n {}", tokens));
     }
-    // command_str.push_str(" --reverse-prompt \"[done]\" ");
-    // command_str.push_str(" --repeat-penalty 1.5");
-    // command_str.push_str(" --frequency-penalty 1.0");
-    // command_str.push_str(" --presence-penalty 1.0");
-    // command_str.push_str(" --mirostat 2");
-    // command_str.push_str(" --mirostat-lr 0.1");
-    // command_str.push_str(" --mirostat-ent 3.0");
 
     if let Some(args) = &config.additional_args {
         for (key, value) in args {
@@ -208,6 +190,7 @@ async fn handle_client(stream: TcpStream) {
         ANSI_RE.replace_all(input, "").to_string()
     }
 
+    // PTY reader thread with filtering and ANSI cleanup
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
@@ -217,15 +200,6 @@ async fn handle_client(stream: TcpStream) {
             let mut is_capturing = false;
             
             loop {
-                let start_marker = {
-                    let config = SHARED_CONFIG.read().unwrap();
-                    if config.prompt.starts_with("RAG-") {
-                        "Your response:  (End your response with \"[done]\")".to_string()
-                    } else {
-                        config.prompt.clone()
-                    }
-                };
-                
                 match pty_reader.read(&mut buffer[..]) {
                     Ok(0) => break,
                     Ok(n) => {
@@ -233,15 +207,18 @@ async fn handle_client(stream: TcpStream) {
                             let cleaned_text = clean_ansi_codes(&text);
                             accumulated.push_str(&cleaned_text);
                             
+                            // Check for start marker
                             if !is_capturing {
-                                if let Some(start_idx) = accumulated.find(&start_marker) {
+                                if let Some(start_idx) = accumulated.find("Your response:") {
                                     is_capturing = true;
-                                    accumulated = accumulated[start_idx + start_marker.len()..].to_string();
+                                    accumulated = accumulated[start_idx + "Your response:".len()..].to_string();
                                 }
                             }
                             
+                            // Check for end marker while capturing
                             if is_capturing {
                                 if let Some(end_idx) = accumulated.find("[end of text]") {
+                                    // Send final chunk before end marker
                                     let final_chunk = accumulated[..end_idx].as_bytes().to_vec();
                                     if !final_chunk.is_empty() {
                                         if tx_clone.send(Message::Binary(final_chunk)).await.is_err() {
@@ -252,6 +229,7 @@ async fn handle_client(stream: TcpStream) {
                                     is_capturing = false;
                                     accumulated.clear();
                                 } else {
+                                    // Find last newline to send complete lines
                                     if let Some(last_newline) = accumulated.rfind('\n') {
                                         let complete_lines = accumulated[..last_newline + 1].as_bytes().to_vec();
                                         if !complete_lines.is_empty() {
@@ -285,14 +263,12 @@ async fn handle_client(stream: TcpStream) {
         }
     });
 
+    // Rest of the handler remains the same
     while let Some(message) = ws_receiver.next().await {
         match message {
             Ok(Message::Text(text)) => {
                 match serde_json::from_str::<LlamaJobConfig>(&text) {
                     Ok(config) => {
-                        if let Ok(mut shared_config) = SHARED_CONFIG.write() {
-                            shared_config.prompt = config.prompt.clone();
-                        }
                         let job_id = Uuid::new_v4().to_string();
                         
                         let workspace_path = match get_workspace_path() {

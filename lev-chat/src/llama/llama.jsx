@@ -301,7 +301,7 @@ const LamaChat = () => {
         const config = {
           prompt: userMessage,
           temperature: 0.7,
-          max_tokens: 768
+          max_tokens: 1024
         };
         ws.send(JSON.stringify(config));
       };
