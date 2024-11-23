@@ -32,7 +32,7 @@ impl RAGProcessor {
     pub fn new(chunk_size: usize, overlap: usize) -> io::Result<Self> {
         let doc_dir = path::document_dir()
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Failed to get documents directory"))?;
-        let data_dir = doc_dir.join("cortexdoc_build_n1/data");
+        let data_dir = doc_dir.join("LevChat/data");
         
         if !data_dir.exists() {
             fs::create_dir_all(&data_dir)?;

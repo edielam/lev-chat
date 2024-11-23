@@ -423,7 +423,7 @@ const LamaChat = () => {
               value={input}
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
+              placeholder="Start typing..."
               rows={1}
             />
             <ButtonGroup>

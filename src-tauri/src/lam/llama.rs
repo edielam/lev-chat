@@ -46,7 +46,7 @@ fn get_workspace_path() -> Result<String, String> {
     let doc_dir = path::document_dir()
         .ok_or_else(|| "Failed to get documents directory".to_string())?;
     
-    let workspace_path = doc_dir.join("cortexdoc_build_n1");
+    let workspace_path = doc_dir.join("LevChat");
 
     std::fs::create_dir_all(&workspace_path)
         .map_err(|e| format!("Failed to create directory: {}", e))?;
