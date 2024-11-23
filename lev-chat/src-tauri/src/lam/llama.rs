@@ -132,7 +132,7 @@ fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str) -> Res
     }
 
     if config.prompt.starts_with("RAG-") {
-        command_str.push_str(&format!(" -p \" {} {}\"", prompt.replace("\"", "\\\""), "PS: (End your response with [done])"));
+        command_str.push_str(&format!(" -p \" {}\"", prompt.replace("\"", "\\\"")));
         
     } else {
         command_str.push_str(&format!(" -p \" {} {} \nYour response: \"", prompt.replace("\"", "\\\""), "PS: (End your response with [done])"));

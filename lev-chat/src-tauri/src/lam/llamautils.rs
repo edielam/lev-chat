@@ -167,7 +167,7 @@ impl RAGProcessor {
 {}
 
 Now use the context to answer the following query: {}
-
+PS: (End your response with [done])
 Your response: "#,
             context_str,
             query
