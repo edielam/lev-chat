@@ -1,0 +1,101 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devPath": "http://localhost:3030",
+    "distDir": "../dist",
+    "withGlobalTauri": true
+  },
+  "package": {
+    "productName": "LevChat",
+    "version": "0.0.1"
+  },
+  "tauri": {
+    "allowlist": {
+      "path": {
+        "all": true
+      },
+      "fs": {
+        "all": false,
+        "readFile": true,
+        "writeFile": true,
+        "readDir": true,
+        "copyFile": false,
+        "createDir": true,
+        "removeDir": false,
+        "removeFile": false,
+        "renameFile": false,
+        "exists": true,
+        "scope": ["$DOCUMENT/*"]
+      },
+      "all": true,
+      "shell": {
+        "open": true,
+        "all": true,
+        "execute": true,
+        "sidecar": true,
+        "scope": [
+          {
+            "name": "sh",
+            "cmd": "sh",
+            "args": ["-c", { "validator": "\\S+" }]
+          },
+          {
+            "name": "cmd",
+            "cmd": "cmd",
+            "args": ["/C", { "validator": "\\S+" }]
+          }
+        ]
+      }
+    },
+    "bundle": {
+      "active": true,
+      "category": "DeveloperTool",
+      "copyright": "",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "identifier": "com.cortex.dev",
+      "longDescription": "",
+      "macOS": {
+        "entitlements": null,
+        "exceptionDomain": "",
+        "frameworks": [],
+        "providerShortName": null,
+        "signingIdentity": null
+      },
+      "resources": [],
+      "shortDescription": "",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
+    },
+    "security": {
+      "csp": null
+    },
+    "updater": {
+      "active": false
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "height": 800,
+        "resizable": true,
+        "title": "Lever Chat",
+        "width": 1200
+      }
+    ]
+  }
+}
