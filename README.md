@@ -6,6 +6,8 @@ A desktop chat application for Local LLM inferencing with optional RAG (Retrieva
 
 LevChat is a lightweight desktop application that allows you to interact with Large Language Models locally on your machine. It supports both standard chat functionality and RAG mode for context-aware conversations using your PDF documents.
 
+![LevChat Demo](./levChat.gif)
+
 > **Note**: Currently, LevChat comes configured with LLaMA 3.2 3B by default. An update that allows you to use any GGUF format model of your choice is coming soon. 
 <!--Browse and download alternative models from [Hugging Face](https://huggingface.co/models?search=gguf). -->
 
