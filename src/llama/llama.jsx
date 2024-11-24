@@ -23,19 +23,19 @@ const darkTheme = {
 const lightTheme = {
   name: 'light',
   background: '#ffffff',
-  secondary: '#fff5eb',  // Soft orange tint
-  border: '#ffe4d4',     // Light peach
-  text: '#4f3338',       // Muted wine
-  textStrong: '#2c1810', // Deep wine
-  accent: '#ff7043',     // Vibrant orange
-  accentHover: '#e64a19',// Darker orange
-  error: '#b71c1c',      // Deep red
+  secondary: '#fff5eb',  
+  border: '#ffe4d4', 
+  text: '#4f3338',
+  textStrong: '#2c1810',
+  accent: '#ff7043',
+  accentHover: '#e64a19',
+  error: '#b71c1c', 
   errorHover: '#931515', 
-  success: '#2e7d32',    // Keeping success green for good UX
-  messageBackground: '#fef8f8', // Very light wine tint
+  success: '#2e7d32', 
+  messageBackground: '#fef8f8',
   inputBackground: '#ffffff',
-  scrollbarTrack: '#fff0e6', // Light orange tint
-  scrollbarThumb: '#d4846f', // Muted wine-orange
+  scrollbarTrack: '#fff0e6',
+  scrollbarThumb: '#d4846f', 
 };
 
 const globalStyles = css`
