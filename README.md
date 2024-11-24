@@ -48,7 +48,7 @@ Since Windows doesn't natively support Bash scripts, follow these manual setup s
    ```
 
 2. Download the model manually:
-   - Visit [Llama-3.2-3B-Instruct-GGUF](https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf)
+   - [Llama-3.2-3B-Instruct-GGUF](https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf)
    - Save the downloaded file as `Llama-3.2-3B-Instruct-Q6_K.gguf` in the `model` folder
 
 Alternatively, you can use Windows Subsystem for Linux (WSL) or Git Bash to run the setup script on Windows.
