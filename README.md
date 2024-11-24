@@ -25,7 +25,7 @@ Available builds:
 You need to install `llama.cpp` before using LevChat. Choose one of the following installation methods:
 
 ### Windows Users
-1. Follow the installation guide in this [YouTube tutorial](https://www.youtube.com/watch?v=r-05yuXTEPE)
+1. Follow this easy [YouTube tutorial](https://www.youtube.com/watch?v=r-05yuXTEPE) installation guide. PS: I don't know this the creator nor was I paid to promote his content.
 2. For setup, see the Windows Setup section below
 
 ### Linux and Mac Users
