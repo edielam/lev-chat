@@ -5,8 +5,45 @@ use lopdf::Document as PdfDocument;
 use rand::Rng;
 use serde::{Serialize, Deserialize};
 use tauri::api::path;
+use std::error::Error;
+use std::os::unix::fs::PermissionsExt;
 
 const EMBEDDING_DIM: usize = 384;
+
+pub fn setup_levchat_dirs() -> Result<(), Box<dyn Error>> {
+    let doc_dir = path::document_dir()
+        .ok_or_else(|| "Failed to get documents directory".to_string())?;
+
+    let levchat_dir = doc_dir.join("LevChat");
+    let data_dir = levchat_dir.join("data");
+    let model_dir = levchat_dir.join("model");
+    
+    let create_dir_with_permissions = |dir: &std::path::Path| -> Result<(), Box<dyn Error>> {
+        if !dir.exists() {
+            println!("Creating directory: {}", dir.display());
+            fs::create_dir_all(dir)?;
+            
+            #[cfg(unix)]
+            {
+                let permissions = fs::Permissions::from_mode(0o755);
+                fs::set_permissions(dir, permissions)?;
+            }
+        }
+        Ok(())
+    };
+
+    create_dir_with_permissions(&levchat_dir)?;
+    create_dir_with_permissions(&data_dir)?;
+    create_dir_with_permissions(&model_dir)?;
+
+    // // Print summary of directory structure
+    // println!("\nLevChat directory structure:");
+    // println!("  └─ {}", levchat_dir.display());
+    // println!("     ├─ data/  {}", if data_dir.exists() { "(✓)" } else { "(✗)" });
+    // println!("     └─ model/ {}", if model_dir.exists() { "(✓)" } else { "(✗)" });
+
+    Ok(())
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Chunk {

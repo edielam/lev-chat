@@ -15,17 +15,6 @@ MODEL_DIR="$LEVCHAT_DIR/model"
 MODEL_URL="https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf"
 MODEL_FILENAME="Llama-3.2-3B-Instruct-Q6_K.gguf"
 
-echo -e "\n${GREEN}Creating directories...${NC}"
-mkdir -p "$DATA_DIR"
-mkdir -p "$MODEL_DIR"
-
-if [ -d "$DATA_DIR" ] && [ -d "$MODEL_DIR" ]; then
-    echo -e "✓ Directories created successfully"
-else
-    echo "Error: Failed to create directories"
-    exit 1
-fi
-
 echo -e "\n${GREEN}Downloading model...${NC}"
 echo "This may take a while depending on your internet connection..."
 

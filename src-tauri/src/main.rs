@@ -6,6 +6,7 @@ mod config;
 
 extern crate serde_json;
 use lam::llama::start_llama_server;
+use lam::llamautils::setup_levchat_dirs;
 use lam::settings::check_settings_file;
 use config::config::configure;
 use anyhow::Result;
@@ -13,7 +14,9 @@ use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let _ = fix_path_env::fix();
     // env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    let _ = setup_levchat_dirs();
     configure();
     check_settings_file();
     let context = tauri::generate_context!();

@@ -8,9 +8,8 @@ LevChat is a lightweight desktop application that allows you to interact with La
 
 ![LevChat Demo](./levChat.gif)
 
-> **Note**: Currently, LevChat comes configured with LLaMA 3.2 3B by default. An update that allows you to use any GGUF format model of your choice is coming soon. 
+> **Note**: Currently, LevChat comes configured with LLaMA 3.2 3B by default. An update that allows you to use any GGUF format model of your choice is coming soon.
 <!--Browse and download alternative models from [Hugging Face](https://huggingface.co/models?search=gguf). -->
-
 
 ## Prerequisites
 
@@ -33,30 +32,27 @@ For detailed installation instructions, refer to the official llama.cpp document
 ## Setup
 
 ### Linux and MacOS
-Run the provided `setup_levchat.sh` script:
+Simply run the provided `setup_levchat.sh` script:
 ```bash
 chmod +x setup_levchat.sh
 ./setup_levchat.sh
 ```
 
+The script will download specified model into required folder.
+
 ### Windows Setup
-Since Windows doesn't natively support Bash scripts, follow these manual setup steps:
+Since Windows doesn't natively support Bash scripts, download the model manually:
 
-1. Create the following directories:
+1. Download [Llama-3.2-3B-Instruct-GGUF](https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf)
+2. Save it as `Llama-3.2-3B-Instruct-Q6_K.gguf` in:
    ```
-   C:\Users\YourUsername\Documents\LevChat
-   C:\Users\YourUsername\Documents\LevChat\data
-   C:\Users\YourUsername\Documents\LevChat\model
+   C:\Users\YourUsername\Documents\LevChat\model\
    ```
-
-2. Download the model manually:
-   - [Llama-3.2-3B-Instruct-GGUF](https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf)
-   - Save the downloaded file as `Llama-3.2-3B-Instruct-Q6_K.gguf` in the `model` folder
 
 Alternatively, you can use Windows Subsystem for Linux (WSL) or Git Bash to run the setup script on Windows.
 
 ### Directory Structure
-After setup, you should have:
+After setup, you will have:
 ```
 Documents/LevChat/
 ├── data/
@@ -69,7 +65,7 @@ Documents/LevChat/
 ### Standard Chat Mode
 1. Open the LevChat application
 2. Start typing your prompts
-3. Press the send button to get responses
+3. Enter/Press send button to get responses
 
 ### RAG Mode
 1. Place your context PDF documents in the `data` folder
@@ -86,3 +82,4 @@ MIT License
 ## Author
 
 Edward Lampoh
+
