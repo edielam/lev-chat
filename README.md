@@ -12,7 +12,7 @@ LevChat is a lightweight desktop application that allows you to interact with La
 
 ## Download
 
-Download the latest version of LevChat for your platform from the [releases page](https://github.com/edielam/lev-chat/releases/tag/v0.0.1).
+Download the latest version of LevChat for your platform from [here](https://drive.google.com/drive/folders/1yO3wYT2fVYZ_WPA-O4WvJvcs8lW0tI4u?usp=drive_link).
 
 Available builds:
 - Windows (x64)
