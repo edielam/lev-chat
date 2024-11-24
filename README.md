@@ -8,8 +8,7 @@ LevChat is a lightweight desktop application that allows you to interact with La
 
 ![LevChat Demo](./levChat.gif)
 
-> **Note**: Currently, LevChat comes configured with LLaMA 3.2 3B by default. An update that allows you to use any GGUF format model of your choice is coming soon.
-<!--Browse and download alternative models from [Hugging Face](https://huggingface.co/models?search=gguf). 
+> **Note**: The setup script downloads quantized versions the LLaMA 3.2 3B model and bge-large-en-v1.5 for embedding. You can modify the script to download models of your preference. Browse and download alternative models from [Hugging Face](https://huggingface.co/models?search=gguf).
 
 ## Download
 
@@ -18,7 +17,7 @@ Download the latest version of LevChat for your platform from the [releases page
 Available builds:
 - Windows (x64)
 - Linux (AMD64)
-- macOS (Apple Silicon) -->
+- macOS (Apple Silicon)
 
 ## Prerequisites
 
@@ -57,6 +56,11 @@ Since Windows doesn't natively support Bash scripts, download the model manually
    ```
    C:\Users\YourUsername\Documents\LevChat\model\
    ```
+3. Download [bge-large-en-v1.5-f16.gguf](https://huggingface.co/CompendiumLabs/bge-large-en-v1.5-gguf/resolve/main/bge-large-en-v1.5-f16.gguf)
+2. Save it as `bge-large-en-v1.5-f16.gguf` in:
+   ```
+   C:\Users\YourUsername\Documents\LevChat\em_model\
+   ```
 
 Alternatively, you can use Windows Subsystem for Linux (WSL) or Git Bash to run the setup script on Windows.
 
@@ -67,6 +71,8 @@ Documents/LevChat/
 ├── data/
 └── model/
     └── Llama-3.2-3B-Instruct-Q6_K.gguf
+└── em_model/
+    └── bge-large-en-v1.5-f16.gguf
 ```
 
 ## Usage
