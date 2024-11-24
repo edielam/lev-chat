@@ -269,7 +269,6 @@ const LamaChat = () => {
   
   const handleStop = () => {
     if (websocketRef.current && isExecuting) {
-      // Create a Uint8Array with the Ctrl+C character (0x03)
       const ctrlC = new Uint8Array([0x03]);
       websocketRef.current.send(ctrlC);
       setIsExecuting(false);
