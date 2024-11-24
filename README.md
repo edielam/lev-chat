@@ -6,12 +6,17 @@ A desktop chat application for Local LLM inferencing with optional RAG (Retrieva
 
 LevChat is a lightweight desktop application that allows you to interact with Large Language Models locally on your machine. It supports both standard chat functionality and RAG mode for context-aware conversations using your PDF documents.
 
+> **Note**: Currently, LevChat comes configured with LLaMA 3.2 3B by default. An update that allows you to use any GGUF format model of your choice is coming soon. 
+<!--Browse and download alternative models from [Hugging Face](https://huggingface.co/models?search=gguf). -->
+
+
 ## Prerequisites
 
 You need to install `llama.cpp` before using LevChat. Choose one of the following installation methods:
 
 ### Windows Users
-- Follow the installation guide in this [YouTube tutorial](https://www.youtube.com/watch?v=r-05yuXTEPE)
+1. Follow the installation guide in this [YouTube tutorial](https://www.youtube.com/watch?v=r-05yuXTEPE)
+2. For setup, see the Windows Setup section below
 
 ### Linux and Mac Users
 ```bash
@@ -25,20 +30,33 @@ For detailed installation instructions, refer to the official llama.cpp document
 
 ## Setup
 
-1. Run the provided `setup_levchat.sh` script to set up your environment:
+### Linux and MacOS
+Run the provided `setup_levchat.sh` script:
 ```bash
 chmod +x setup_levchat.sh
 ./setup_levchat.sh
 ```
 
-The script will:
-- Create necessary directories in `~/Documents/LevChat`
-- Download the required model (Llama-3.2-3B-Instruct-Q6_K.gguf)
-- Set up the data directory for RAG functionality
+### Windows Setup
+Since Windows doesn't natively support Bash scripts, follow these manual setup steps:
 
-Directory structure after setup:
+1. Create the following directories:
+   ```
+   C:\Users\YourUsername\Documents\LevChat
+   C:\Users\YourUsername\Documents\LevChat\data
+   C:\Users\YourUsername\Documents\LevChat\model
+   ```
+
+2. Download the model manually:
+   - Visit [Llama-3.2-3B-Instruct-GGUF](https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf)
+   - Save the downloaded file as `Llama-3.2-3B-Instruct-Q6_K.gguf` in the `model` folder
+
+Alternatively, you can use Windows Subsystem for Linux (WSL) or Git Bash to run the setup script on Windows.
+
+### Directory Structure
+After setup, you should have:
 ```
-~/Documents/LevChat/
+Documents/LevChat/
 ├── data/
 └── model/
     └── Llama-3.2-3B-Instruct-Q6_K.gguf
@@ -66,4 +84,3 @@ MIT License
 ## Author
 
 Edward Lampoh
-
