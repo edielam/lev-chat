@@ -8,7 +8,7 @@ LevChat is a lightweight desktop application that allows you to interact with La
 
 ![LevChat Demo](./levChat.gif)
 
-> **Note**: The setup script downloads quantized versions the LLaMA 3.2 3B model and bge-large-en-v1.5 for embedding. You can modify the script to download models of your preference. Browse and download alternative models from [Hugging Face](https://huggingface.co/models?search=gguf).
+> **Note**: The setup script downloads quantized versions of the LLaMA 3.2 3B model and bge-large-en-v1.5 for embedding. You can modify the script to download models of your preference. Browse and download alternative models from [Hugging Face](https://huggingface.co/models?search=gguf).
 
 ## Download
 
