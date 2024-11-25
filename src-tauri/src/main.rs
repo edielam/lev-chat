@@ -8,13 +8,14 @@ use lam::llama::start_llama_server;
 use lam::llamautils::setup_levchat_dirs;
 use lam::settings::check_settings_file;
 use config::config::configure;
+use config::setup::*;
 use anyhow::Result;
 use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = fix_path_env::fix();
-    // env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let _ = setup_levchat_dirs();
     configure();
     check_settings_file();
@@ -31,6 +32,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            download_model,
+            list_embedding_models, list_language_models,
+            is_llama_cpp_installed, install_llama_cpp_command
+        ])
         .run(context)
         .expect("error while running tauri application");
 

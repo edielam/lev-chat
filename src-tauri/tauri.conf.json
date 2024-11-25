@@ -91,10 +91,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 700,
+        "height": 1200,
         "resizable": true,
         "title": "LevChat",
-        "width": 1000
+        "width": 700
       }
     ]
   }
