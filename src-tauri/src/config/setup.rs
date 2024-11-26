@@ -40,29 +40,10 @@ use lazy_static::lazy_static;
 //         _ => panic!("Unsupported operating system"),
 //     }
 // }
-#[tauri::command]
-pub fn is_llama_cpp_installed() -> bool {
-    // Get the setup directory path
-    let doc_dir = match dirs::document_dir() {
-        Some(dir) => dir,
-        None => return false,
-    };
-    let setup_dir = doc_dir.join("LevChat").join("setup");
-    
-    // Construct the full path to llama-cli
-    let llama_cli_path = setup_dir.join("llama-cli");
-    
-    // Try running with full path
-    Command::new(llama_cli_path)
-        .arg("--help")
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
-}
 // #[tauri::command]
 // pub fn is_llama_cpp_installed() -> bool {
 //     // Get the setup directory path
-//     let doc_dir = match path::document_dir() {
+//     let doc_dir = match dirs::document_dir() {
 //         Some(dir) => dir,
 //         None => return false,
 //     };
@@ -76,16 +57,95 @@ pub fn is_llama_cpp_installed() -> bool {
 //         .arg("--help")
 //         .output()
 //         .map(|output| output.status.success())
-//         .unwrap_or_else(|_| {
-//             // Fallback to system-wide check if full path fails
-//             Command::new("llama-cli")
-//                 .arg("--help")
-//                 .output()
-//                 .map(|output| output.status.success())
-//                 .unwrap_or(false)
-//         })
+//         .unwrap_or(false)
 // }
+// #[tauri::command]
+// pub fn is_llama_cpp_installed() -> Result<bool, String> {
+//     // Get the setup directory path
+//     let doc_dir = match path::document_dir() {
+//         Some(dir) => dir,
+//         None => return Err("Could not find documents directory".to_string()),
+//     };
+//     let setup_dir = doc_dir.join("LevChat").join("setup");
+    
+//     // Construct the full path to llama-cli
+//     let llama_cli_path = setup_dir.join("llama-cli");
+//     let llama_cli_exe_path = setup_dir.join("llama-cli.exe");
+    
+//     // Try running with full path
+//     match Command::new(&llama_cli_path)
+//         .arg("--help")
+//         .output() {
+//         Ok(output) if output.status.success() => return Ok(true),
+//         _ => {
+//             // Fallback to system-wide check
+//             match Command::new("llama-cli")
+//                 .arg("--help")
+//                 .output() {
+//                 Ok(output) if output.status.success() => return Ok(true),
+//                 _ => {
+//                     // Check if llama-cli exists in the setup directory
+//                     if llama_cli_path.exists() {
+//                         return Err("executable found but incompatible with system".to_string());
+//                     }
+                    
+//                     // Check specifically for llama-cli.exe
+//                     if llama_cli_exe_path.exists() {
+//                         return Err("executable found but incompatible with system".to_string());
+//                     }
+                    
+//                     return Ok(false);
+//                 }
+//             }
+//         }
+//     }
+// }
+#[tauri::command]
+pub fn is_llama_cpp_installed() -> bool {
+    // Get the setup directory path
+    let doc_dir = match path::document_dir() {
+        Some(dir) => dir,
+        None => return false,
+    };
+    let setup_dir = doc_dir.join("LevChat").join("setup");
+    
+    // Construct the full path to llama-cli
+    let llama_cli_path = setup_dir.join("llama-cli");
+    
+    // Try running with full path
+    Command::new(llama_cli_path)
+        .arg("--help")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or_else(|_| {
+            // Fallback to system-wide check if full path fails
+            Command::new("llama-clioo")
+                .arg("--help")
+                .output()
+                .map(|output| output.status.success())
+                .unwrap_or(false)
+        })
+}
 
+#[tauri::command]
+pub fn check_llama_cpp_executable_exists() -> Result<String, String> {
+    let doc_dir = match path::document_dir() {
+        Some(dir) => dir,
+        None => return Err("Could not find documents directory".to_string()),
+    };
+    let setup_dir = doc_dir.join("LevChat").join("setup");
+    
+    let llama_cli_path = setup_dir.join("llama-cli");
+    let llama_cli_exe_path = setup_dir.join("llama-cli.exe");
+    
+    if llama_cli_path.exists() {
+        Ok("llama-cli".to_string())
+    } else if llama_cli_exe_path.exists() {
+        Ok("llama-cli.exe".to_string())
+    } else {
+        Err("No llama.cpp executable found".to_string())
+    }
+}
 // fn detect_windows_binary() -> Option<WindowsBinary> {
 //     let cuda_version = detect_cuda_version();
     

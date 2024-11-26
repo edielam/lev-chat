@@ -37,7 +37,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             list_embedding_models, list_language_models,
             is_llama_cpp_installed, download_setup,
             get_download_progress, cancel_download, cancel_setup,
-            get_setup_progress, reset_setup_progress, unzip_setup
+            get_setup_progress, reset_setup_progress, unzip_setup,
+            check_llama_cpp_executable_exists
         ])
         .run(context)
         .expect("error while running tauri application");

@@ -248,10 +248,29 @@ const RAGSidebar = ({onToggle}) => {
 
     const checkLlamaCppInstallation = async () => {
         try {
-        const isInstalled = await invoke('is_llama_cpp_installed');
-        setLlamaCppInstalled(isInstalled);
+            const installed = await invoke('is_llama_cpp_installed');
+            
+            if (installed) {
+                setLlamaCppInstalled(true);
+                setInstallError(null);
+            } else {
+                // If not installed, check for existing executable
+                try {
+                    const executableName = await invoke('check_llama_cpp_executable_exists');
+                    console.log(executableName + " was found")
+                    // Simply set a descriptive message instead of treating it as an error
+                    setLlamaCppInstalled(false);
+                    setInstallError(`Executable ${executableName} found but is incompatible with your system`);
+                } catch (execError) {
+                    // No executable found
+                    setLlamaCppInstalled(false);
+                    setInstallError(null);
+                }
+            }
         } catch (error) {
-        console.error('Error checking llama.cpp installation:', error);
+            console.error('Error checking llama.cpp installation:', error);
+            setLlamaCppInstalled(false);
+            setInstallError('Error checking installation');
         }
     };
     
@@ -278,6 +297,7 @@ const RAGSidebar = ({onToggle}) => {
             [type]: value
         }));
     };
+    
     
     const handleModelDownload = async (type) => {
         console.log(`Attempting to download ${type} model`);
@@ -351,10 +371,17 @@ const RAGSidebar = ({onToggle}) => {
                 </SectionTitle>
                 {sectionsOpen.prerequisites ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </SectionHeader>
-
             {sectionsOpen.prerequisites && (
-                <>
-                <StatusMessage>
+    <>
+    {!llamaCppInstalled ? (
+        <>
+        {installError ? (
+        <StatusMessage>
+            <AlertTriangle color="orange" size={18} style={{ marginRight: '10px' }} />
+            {installError}
+        </StatusMessage>
+    ) : (
+        <StatusMessage>
             You can use the pre-loaded URLs or visit the{' '}
             <a 
                 href="https://github.com/ggerganov/llama.cpp/releases/" 
@@ -370,49 +397,57 @@ const RAGSidebar = ({onToggle}) => {
             </a>{' '}
             to download compatible binaries.
         </StatusMessage>
-               
-            <ModelDownloadSection>
-                <ModelDownloadGroup>
-                    <ModelUrlLabel>Windows-x64</ModelUrlLabel>
-                    <ModelDownloadContainer>
-                        <ModelUrlInput 
-                        placeholder="Enter URL for llama binaries"
-                        value={setupUrls.Windows}
-                        onChange={(e) => handleSetupUrlChange('Windows', e.target.value)}
-                        />
-                        <DownloadModelButton 
-                        onClick={(e) => {
-                            e.preventDefault(); // Prevent default form submission
-                            e.stopPropagation(); // Stop event from bubbling
-                            console.log('Download button clicked for windows'); // Debug log
-                            handleInstallLlamaCpp ('Windows');
-                        }}>
-                        <Download size={18} />
-                        </DownloadModelButton>
-                    </ModelDownloadContainer>
-                </ModelDownloadGroup>
-                <ModelDownloadGroup>
-                    <ModelUrlLabel>Linux-x64</ModelUrlLabel>
-                    <ModelDownloadContainer>
-                        <ModelUrlInput 
-                        placeholder="Enter URL for llama binaries"
-                        value={setupUrls.Linux}
-                        onChange={(e) => handleSetupUrlChange('Linux', e.target.value)}
-                        />
-                        <DownloadModelButton 
-                        onClick={(e) => {
-                            e.preventDefault(); // Prevent default form submission
-                            e.stopPropagation(); // Stop event from bubbling
-                            console.log('Download button clicked for linux'); // Debug log
-                            handleInstallLlamaCpp ('Linux');
-                        }}>
-                        <Download size={18} />
-                        </DownloadModelButton>
-                    </ModelDownloadContainer>
-                </ModelDownloadGroup>
-            </ModelDownloadSection>
-            </>
-            )}
+    )}
+        <ModelDownloadSection>
+            <ModelDownloadGroup>
+                <ModelUrlLabel>Windows-x64</ModelUrlLabel>
+                <ModelDownloadContainer>
+                    <ModelUrlInput 
+                    placeholder="Enter URL for llama binaries"
+                    value={setupUrls.Windows}
+                    onChange={(e) => handleSetupUrlChange('Windows', e.target.value)}
+                    />
+                    <DownloadModelButton 
+                    onClick={(e) => {
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        console.log('Download button clicked for windows');
+                        handleInstallLlamaCpp('Windows');
+                    }}>
+                    <Download size={18} />
+                    </DownloadModelButton>
+                </ModelDownloadContainer>
+            </ModelDownloadGroup>
+            <ModelDownloadGroup>
+                <ModelUrlLabel>Linux-x64</ModelUrlLabel>
+                <ModelDownloadContainer>
+                    <ModelUrlInput 
+                    placeholder="Enter URL for llama binaries"
+                    value={setupUrls.Linux}
+                    onChange={(e) => handleSetupUrlChange('Linux', e.target.value)}
+                    />
+                    <DownloadModelButton 
+                    onClick={(e) => {
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        console.log('Download button clicked for linux');
+                        handleInstallLlamaCpp('Linux');
+                    }}>
+                    <Download size={18} />
+                    </DownloadModelButton>
+                </ModelDownloadContainer>
+            </ModelDownloadGroup>
+        </ModelDownloadSection>
+        </>
+    ) : (
+
+            <StatusMessage>
+                <CheckCircle2 color="green" size={18} />
+                llama.cpp is installed
+            </StatusMessage>
+    )}
+    </>
+)}
             </SidebarSection>
 
             <SidebarSection>
