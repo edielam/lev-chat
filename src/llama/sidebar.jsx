@@ -273,10 +273,9 @@ const RAGSidebar = ({onToggle}) => {
         }));
     };
     const handleSetupUrlChange = (type, value) => {
-        const key = type === 'os' ? 'Windows' : 'Linux';
         setSetupUrls(prev => ({
-        ...prev,
-        [key]: value
+            ...prev,
+            [type]: value
         }));
     };
     

@@ -468,36 +468,15 @@ pub async fn download_setup(
     if file_path.exists() {
         return Err(format!("Model {} already exists", filename));
     }
-
-    // Verify download link first
     let client = Client::new();
     let response = client.head(&url)
         .send()
         .await
         .map_err(|e| format!("Failed to verify download link: {}", e))?;
-
-    // Check if the response is successful
+    
     if !response.status().is_success() {
         return Err(format!("Invalid download link. Server returned status: {}", response.status()));
     }
-
-    // Verify content length and type
-    let total_size = response.content_length()
-        .ok_or_else(|| "Failed to get content length".to_string())?;
-
-    // Optional: Add content type validation if needed
-    let content_type = response.headers()
-        .get("content-type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("unknown");
-
-    // Optional content type check - adjust as needed
-    if !content_type.contains("application/") && 
-       !content_type.contains("application/octet-stream") && 
-       !content_type.contains("binary") {
-        return Err(format!("Unexpected content type: {}", content_type));
-    }
-
     // Create channels for cancellation
     let (cancel_tx, mut cancel_rx) = mpsc::channel(1);
 
@@ -507,15 +486,24 @@ pub async fn download_setup(
         state.is_downloading = true;
         state.filename = Some(filename.clone());
         state.downloaded_size = 0;
-        state.total_size = Some(total_size);
         state.cancel_tx = Some(cancel_tx);
     }
 
-    // Prepare for actual download
+    // Prepare download
+    let client = Client::new();
     let response = client.get(&url)
         .send()
         .await
         .map_err(|e| format!("Failed to initiate download: {}", e))?;
+
+    let total_size = response.content_length()
+        .ok_or_else(|| "Failed to get content length".to_string())?;
+
+    // Update total size in global state
+    {
+        let mut state =  LLAMACPP_STATE.lock().unwrap();
+        state.total_size = Some(total_size);
+    }
 
     // Prepare file for writing
     fs::create_dir_all(&download_path)
@@ -543,22 +531,23 @@ pub async fn download_setup(
                     state.downloaded_size += chunk.len() as u64;
                 }
             }
+            // _ = cancel_rx.recv() => {
+            //     // Download cancelled
+            //     {
+            //         let mut state =  LLAMACPP_STATE.lock().unwrap();
+            //         state.is_downloading = false;
+            //     }
+            //     // Optional: Remove partial download
+            //     std::fs::remove_file(&file_path).ok();
+            //     return Err("Download cancelled".to_string());
+            // }
             else => break
         }
     }
 
-    // Verify download completeness
-    if file.metadata().map_err(|e| format!("Failed to get file metadata: {}", e))?.len() != total_size {
-        // Remove incomplete file
-        fs::remove_file(&file_path)
-            .map_err(|e| format!("Failed to remove incomplete file: {}", e))?;
-        
-        return Err("Download was incomplete".to_string());
-    }
-
     // Mark download as complete
     {
-        let mut state = LLAMACPP_STATE.lock().unwrap();
+        let mut state =  LLAMACPP_STATE.lock().unwrap();
         state.is_downloading = false;
         state.downloaded_size = total_size;
     }
@@ -629,7 +618,15 @@ pub async fn download_model(
     if file_path.exists() {
         return Err(format!("Model {} already exists", filename));
     }
+    let client = Client::new();
+    let response = client.head(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to verify download link: {}", e))?;
 
+    if !response.status().is_success() {
+        return Err(format!("Invalid download link. Server returned status: {}", response.status()));
+    }
     // Create channels for cancellation
     let (cancel_tx, mut cancel_rx) = mpsc::channel(1);
 
