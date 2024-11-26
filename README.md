@@ -19,7 +19,7 @@ Available builds:
 
 ## Prerequisites
 
-`llama.cpp` is required for LevChat. You can easily download and configure the appropriate `llama.cpp` executables for your system via the UI. If you prefer to do it your or the setup encounters issues, manually install/download the correct executable for your platform from the [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases) and place it in your LevChat `setup` folder.
+`llama.cpp` is required for LevChat. You can easily download and configure the appropriate `llama.cpp` executables for your system via the UI. If the setup encounters issues or you simply prefer to do it yourself, manually install/download the correct executable for your platform from the [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases) and place it in your LevChat `setup` folder.
 
 Supported platforms include Windows, macOS, and Linux. 
 
