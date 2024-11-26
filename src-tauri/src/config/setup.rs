@@ -146,348 +146,7 @@ pub fn check_llama_cpp_executable_exists() -> Result<String, String> {
         Err("No llama.cpp executable found".to_string())
     }
 }
-// fn detect_windows_binary() -> Option<WindowsBinary> {
-//     let cuda_version = detect_cuda_version();
-    
-//     let mut system = System::new_all();
-//     system.refresh_cpu_all();
-    
-//     // Use CPU features from sysinfo in a different way
-//     let cpu_has_avx512 = system.cpus().iter().any(|cpu| 
-//         cpu.vendor_id().contains("Intel") && cpu.name().contains("AVX-512")
-//     );
-//     let cpu_has_avx2 = system.cpus().iter().any(|cpu| 
-//         cpu.name().contains("AVX2")
-//     );
-    
-//     match (cuda_version, cpu_has_avx512, cpu_has_avx2) {
-//         (Some(v), _, _) if v >= 11 && v < 12 => Some(WindowsBinary::CudaV11),
-//         (Some(v), _, _) if v >= 12 => Some(WindowsBinary::CudaV12),
-//         (_, true, _) => Some(WindowsBinary::Avx512),
-//         (_, _, true) => Some(WindowsBinary::Avx2),
-//         _ => Some(WindowsBinary::AvxBasic)
-//     }
-// }
 
-// fn detect_cuda_version() -> Option<u8> {
-//     // Windows CUDA version detection
-//     #[cfg(windows)]
-//     {
-//         let output = Command::new("nvcc")
-//             .arg("--version")
-//             .output()
-//             .ok()?;
-        
-//         let version_str = String::from_utf8_lossy(&output.stdout);
-//         let version_match = version_str.split("Cuda compilation tools, release")
-//             .nth(1)?
-//             .trim()
-//             .split('.')
-//             .next()?;
-        
-//         version_match.parse().ok()
-//     }
-    
-//     #[cfg(not(windows))]
-//     { None }
-// }
-
-// fn get_download_url(platform: &Platform, binary: Option<&WindowsBinary>) -> Option<String> {
-//     match platform {
-//         Platform::MacOS => Some("brew install llama.cpp".to_string()),
-//         Platform::Windows => match binary {
-//             Some(WindowsBinary::CudaV11) => 
-//                 Some(format!("{}/{}/llama-b4163-bin-win-cuda-cu11.7.1-x64.zip", GITHUB_RELEASES_URL, LATEST_VERSION)),
-//             Some(WindowsBinary::CudaV12) => 
-//                 Some(format!("{}/{}/llama-b4163-bin-win-cuda-cu12.2.0-x64.zip", GITHUB_RELEASES_URL, LATEST_VERSION)),
-//             Some(WindowsBinary::AvxBasic) => 
-//                 Some(format!("{}/{}/llama-b4163-bin-win-avx-x64.zip", GITHUB_RELEASES_URL, LATEST_VERSION)),
-//             Some(WindowsBinary::Avx2) => 
-//                 Some(format!("{}/{}/llama-b4163-bin-win-avx2-x64.zip", GITHUB_RELEASES_URL, LATEST_VERSION)),
-//             Some(WindowsBinary::Avx512) => 
-//                 Some(format!("{}/{}/llama-b4163-bin-win-avx512-x64.zip", GITHUB_RELEASES_URL, LATEST_VERSION)),
-//             None => None
-//         },
-//         Platform::Linux => 
-//             Some(format!("{}/{}/llama-{}-bin-ubuntu-x64.zip", GITHUB_RELEASES_URL, LATEST_VERSION, LATEST_VERSION)),
-//     }
-// }
-
-// fn download_and_install(url: &str, install_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-//     let response = reqwest::blocking::get(url)?;
-//     let content = response.bytes()?;
-
-//     fs::create_dir_all(install_dir)?;
-
-//     let filename = url.split('/').last().unwrap_or("llama.zip");
-//     let filepath = install_dir.join(filename);
-//     fs::write(&filepath, content)?;
-
-//     if filename.ends_with(".zip") {
-//         let output = Command::new("unzip")
-//             .arg(&filepath)
-//             .arg("-d")
-//             .arg(install_dir)
-//             .output()?;
-        
-//         if !output.status.success() {
-//             return Err("Failed to extract zip file".into());
-//         }
-//     }
-
-//     Ok(())
-// }
-// pub async fn download_with_progress(url: &str, download_path: &PathBuf) -> Result<String, String> {
-//     let filename = url.split('/').last()
-//         .ok_or_else(|| "Could not extract filename from URL".to_string())?
-//         .to_string();
-//     let file_path = download_path.join(&filename);
-
-//     if file_path.exists() {
-//         return Err(format!("Model {} already exists", filename));
-//     }
-
-//     // Create channels for cancellation
-//     let (lam_tx, mut lam_rx) = mpsc::channel(1);
-
-//     // Update global state
-//     {
-//         let mut state = LLAMACPP_STATE.lock().unwrap();
-//         state.is_downloading = true;
-//         state.filename = Some(filename.clone());
-//         state.downloaded_size = 0;
-//         state.cancel_tx = Some(lam_tx);
-//     }
-
-//     // Prepare download
-//     let client = Client::new();
-//     let response = client.get(url)
-//         .send()
-//         .await
-//         .map_err(|e| format!("Failed to initiate download: {}", e))?;
-
-//     let total_size = response.content_length()
-//         .ok_or_else(|| "Failed to get content length".to_string())?;
-
-//     // Update total size in global state
-//     {
-//         let mut state = LLAMACPP_STATE.lock().unwrap();
-//         state.total_size = Some(total_size);
-//     }
-
-//     // Prepare file for writing
-//     fs::create_dir_all(&download_path)
-//         .map_err(|e| format!("Failed to create directory: {}", e))?;
-
-//     let mut file = File::create(&file_path)
-//         .map_err(|e| format!("Failed to create file: {}", e))?;
-
-//     // Stream download
-//     let mut stream = response.bytes_stream();
-
-//     loop {
-//         tokio::select! {
-//             Some(item) = stream.next() => {
-//                 let chunk = item
-//                     .map_err(|e| format!("Error downloading chunk: {}", e))?;
-                
-//                 // Write chunk to file
-//                 file.write_all(&chunk)
-//                     .map_err(|e| format!("Failed to write chunk: {}", e))?;
-
-//                 // Update downloaded size
-//                 {
-//                     let mut state = LLAMACPP_STATE.lock().unwrap();
-//                     state.downloaded_size += chunk.len() as u64;
-//                 }
-//             }
-//             _ = lam_rx.recv() => {
-//                 // Download cancelled
-//                 {
-//                     let mut state = LLAMACPP_STATE.lock().unwrap();
-//                     state.is_downloading = false;
-//                 }
-//                 // Optional: Remove partial download
-//                 std::fs::remove_file(&file_path).ok();
-//                 return Err("Download cancelled".to_string());
-//             }
-//             else => break
-//         }
-//     }
-
-//     // Mark download as complete
-//     {
-//         let mut state = LLAMACPP_STATE.lock().unwrap();
-//         state.is_downloading = false;
-//         state.downloaded_size = total_size;
-//     }
-
-//     Ok(format!("Model {} downloaded successfully", filename))
-// }
-
-
-// pub async fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
-//     if is_llama_cpp_installed() {
-//         return Ok(());
-//     }
-
-//     let platform = detect_platform();
-//     let doc_dir = path::document_dir()
-//         .ok_or_else(|| "Failed to get documents directory".to_string())?;
- 
-//     let install_dir = doc_dir.join("LevChat").join("setup");
-//     fs::create_dir_all(&install_dir)?; // Ensure directory exists
-
-//     match platform {
-//         Platform::MacOS => {
-            
-//                 let _ = download_with_progress("https://github.com/ggerganov/llama.cpp/releases/download/b4163/llama-b1-bin-win-hip-x64-gfx1030.zip", &install_dir).await;
-
-//                 let url = "https://github.com/ggerganov/llama.cpp/releases/download/b4163/llama-b1-bin-win-hip-x64-gfx1030.zip";
-//                 let filename = url.split('/').last().unwrap_or("llama.zip");
-//                 let filepath = install_dir.join(filename);
-                
-//                 let output = Command::new("unzip")
-//                     .arg(&filepath)
-//                     .arg("-d")
-//                     .arg(&install_dir)
-//                     .arg("-o")  // overwrite existing files
-//                     .output()?;
-                
-//                 // Remove the zip file after extraction
-//                 fs::remove_file(filepath)?;
-
-//                 // If there's a nested folder from the zip, flatten its contents
-//                 if let Ok(entries) = fs::read_dir(&install_dir) {
-//                     let nested_folders: Vec<_> = entries
-//                         .filter_map(|entry| entry.ok())
-//                         .filter(|entry| entry.path().is_dir() && entry.path().join("bin").exists())
-//                         .collect();
-
-//                     for folder in nested_folders {
-//                         let nested_path = folder.path();
-                        
-//                         // Move contents of the nested folder to install_dir
-//                         for nested_entry in fs::read_dir(&nested_path)? {
-//                             let nested_entry = nested_entry?;
-//                             let dest = install_dir.join(nested_entry.file_name());
-                            
-//                             if nested_entry.path().is_file() {
-//                                 fs::rename(nested_entry.path(), dest)?;
-//                             } else if nested_entry.path().is_dir() {
-//                                 fs::rename(nested_entry.path(), dest)?;
-//                             }
-//                         }
-
-//                         // Remove the now-empty nested folder
-//                         fs::remove_dir(nested_path)?;
-//                     }
-//                 }
-
-//                 if !output.status.success() {
-//                     return Err("Failed to extract zip file".into());
-//                 }
-//              else {
-//                 return Err("Failed to get download URL for Linux".into());
-//             }
-//             // let output = Command::new("brew")
-//             //     .arg("install")
-//             //     .arg("llama.cpp")
-//             //     .output()?;
-            
-//             // if !output.status.success() {
-//             //     return Err("Failed to install llama.cpp via Homebrew".into());
-//             // }
-//         },
-//         Platform::Windows => {
-//             let binary = detect_windows_binary();
-//             if let Some(url) = get_download_url(&platform, binary.as_ref()) {
-//                 // Use download_with_progress 
-//                 let _ = download_with_progress(url.as_str(), &install_dir).await;
-
-//                 // Unzip directly into install_dir
-//                 let filename = url.split('/').last().unwrap_or("llama.zip");
-//                 let filepath = install_dir.join(filename);
-                
-//                 let output = Command::new("unzip")
-//                     .arg(&filepath)
-//                     .arg("-d")
-//                     .arg(&install_dir)
-//                     .arg("-o")  // overwrite existing files
-//                     .output()?;
-                
-//                 if !output.status.success() {
-//                     return Err("Failed to extract zip file".into());
-//                 }
-
-//                 // Remove the zip file after extraction
-//                 fs::remove_file(filepath)?;
-//             } else {
-//                 return Err("No suitable binary found for your system".into());
-//             }
-//         },
-//         Platform::Linux => {
-//             if let Some(url) = get_download_url(&platform, None) {
-//                 // Use download_with_progress
-//                 let _ = download_with_progress(url.as_str(), &install_dir).await;
-
-//                 // Unzip directly into install_dir
-//                 let filename = url.split('/').last().unwrap_or("llama.zip");
-//                 let filepath = install_dir.join(filename);
-                
-//                 let output = Command::new("unzip")
-//                     .arg(&filepath)
-//                     .arg("-d")
-//                     .arg(&install_dir)
-//                     .arg("-o")  // overwrite existing files
-//                     .output()?;
-                
-//                 // Remove the zip file after extraction
-//                 fs::remove_file(filepath)?;
-
-//                 // If there's a nested folder from the zip, flatten its contents
-//                 if let Ok(entries) = fs::read_dir(&install_dir) {
-//                     let nested_folders: Vec<_> = entries
-//                         .filter_map(|entry| entry.ok())
-//                         .filter(|entry| entry.path().is_dir() && entry.path().join("bin").exists())
-//                         .collect();
-
-//                     for folder in nested_folders {
-//                         let nested_path = folder.path();
-                        
-//                         // Move contents of the nested folder to install_dir
-//                         for nested_entry in fs::read_dir(&nested_path)? {
-//                             let nested_entry = nested_entry?;
-//                             let dest = install_dir.join(nested_entry.file_name());
-                            
-//                             if nested_entry.path().is_file() {
-//                                 fs::rename(nested_entry.path(), dest)?;
-//                             } else if nested_entry.path().is_dir() {
-//                                 fs::rename(nested_entry.path(), dest)?;
-//                             }
-//                         }
-
-//                         // Remove the now-empty nested folder
-//                         fs::remove_dir(nested_path)?;
-//                     }
-//                 }
-
-//                 if !output.status.success() {
-//                     return Err("Failed to extract zip file".into());
-//                 }
-//             } else {
-//                 return Err("Failed to get download URL for Linux".into());
-//             }
-//         }
-//     }
-
-//     Ok(())
-// }
-
-// #[tauri::command]
-// pub async fn install_llama_cpp_command() -> Result<(), String> {
-//     install_llama_cpp().await.map_err(|e| e.to_string())
-// }
 lazy_static! {
     static ref LLAMACPP_STATE: Arc<Mutex<DownloadState>> = Arc::new(Mutex::new(DownloadState::default()));
 }
@@ -686,18 +345,24 @@ pub async fn unzip_setup(url: String, model_type: String) -> Result<String, Stri
     let mut archive = zip::ZipArchive::new(zip_file)
         .map_err(|e| format!("Failed to read zip archive: {}", e))?;
 
+    // Find the common prefix to strip
+    let common_prefix = find_common_prefix(&mut archive)
+        .map_err(|e| format!("Failed to determine common prefix: {}", e))?;
+
     // Extract each file directly to download_path
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)
             .map_err(|e| format!("Failed to extract file {}: {}", i, e))?;
         
-        let outpath = match file.enclosed_name() {
-            Some(path) => download_path.join(path),
-            None => continue
-        };
+        // Strip the common prefix from the file path
+        let relative_path = file.name()
+            .strip_prefix(&common_prefix)
+            .unwrap_or(file.name());
+
+        let outpath = download_path.join(relative_path);
 
         // Create parent directories if they don't exist
-        if file.name().ends_with('/') {
+        if relative_path.ends_with('/') {
             fs::create_dir_all(&outpath)
                 .map_err(|e| format!("Failed to create directory {}: {}", outpath.display(), e))?;
         } else {
@@ -721,6 +386,40 @@ pub async fn unzip_setup(url: String, model_type: String) -> Result<String, Stri
         .map_err(|e| format!("Failed to remove zip file: {}", e))?;
 
     Ok(format!("Successfully extracted {} to {}", filename, download_path.display()))
+}
+
+// Helper function to find the common prefix in the zip file
+fn find_common_prefix(archive: &mut zip::ZipArchive<fs::File>) -> Result<String, String> {
+    // Collect all entry names
+    let entries: Vec<String> = (0..archive.len())
+        .map(|i| archive.by_index(i)
+            .map(|file| file.name().to_string())
+            .map_err(|e| format!("Error reading archive entry: {}", e))
+        )
+        .collect::<Result<Vec<String>, String>>()?;
+
+    // Find the common prefix
+    if entries.is_empty() {
+        return Ok(String::new());
+    }
+
+    let first = &entries[0];
+    let common_prefix = entries.iter()
+        .fold(first.clone(), |acc, entry| {
+            common_prefix(&acc, entry)
+        });
+
+    // Ensure the common prefix ends with a directory separator if it's a directory
+    Ok(common_prefix)
+}
+
+// Helper function to find the common prefix between two strings
+fn common_prefix(s1: &str, s2: &str) -> String {
+    s1.chars()
+       .zip(s2.chars())
+       .take_while(|(a, b)| a == b)
+       .map(|(c, _)| c)
+       .collect()
 }
 
 #[tauri::command]

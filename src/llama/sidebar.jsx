@@ -243,7 +243,14 @@ const RAGSidebar = ({onToggle}) => {
 
 
     useEffect(() => {
+        // Initial check
         checkLlamaCppInstallation();
+    
+        // Set up an interval to check periodically
+        const intervalId = setInterval(checkLlamaCppInstallation, 2000); // Check every 5 seconds
+    
+        // Clean up the interval when the component unmounts
+        return () => clearInterval(intervalId);
     }, []);
 
     const checkLlamaCppInstallation = async () => {
