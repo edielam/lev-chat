@@ -192,6 +192,13 @@ const SetupDownloadOverlay = ({
       });
   
       // Success handling
+      // Reset all states completely
+      setIsUnzipping(false);
+      setDownloadProgress(null);
+      setDownloadError(null);
+      setLocalError(null);
+      setIsDownloading(false);
+      
       onClose();
     } catch (error) {
       setUnzipError(error instanceof Error ? error.message : String(error));
@@ -310,7 +317,7 @@ const SetupDownloadOverlay = ({
           <>
             {isDownloading ? (
               <Button
-                onClick={handleCancelDownload}
+                onClick={handleClose}
                 style={{ 
                   padding: '0.5rem 1rem', 
                   color: 'white', 

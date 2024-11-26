@@ -286,11 +286,11 @@ const RAGSidebar = ({onToggle}) => {
         setIsInstalling(false);
     };
     
-    const handleInstallComplete = async () => {
-        await checkLlamaCppInstallation();
-        setActiveSetupType(null);
-        setIsInstalling(false);
-    };
+    // const handleInstallComplete = async () => {
+    //     await checkLlamaCppInstallation();
+    //     setActiveSetupType(null);
+    //     setIsInstalling(false);
+    // };
     const handleModelUrlChange = (type, value) => {
         const key = type === 'language' ? 'languageModel' : 'embeddingModel';
         setModelUrls(prev => ({
