@@ -1,6 +1,6 @@
 [package]
 name = "lev-chat"
-version = "0.0.1"
+version = "0.0.2"
 description = "Desktop chat application for Local LLM inferencing and optional RAG"
 authors = ["Edward Lampoh"]
 license = "MIT"
