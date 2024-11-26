@@ -116,30 +116,30 @@ fn get_download_url(platform: &Platform, binary: Option<&WindowsBinary>) -> Opti
     }
 }
 
-fn download_and_install(url: &str, install_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    let response = reqwest::blocking::get(url)?;
-    let content = response.bytes()?;
+// fn download_and_install(url: &str, install_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+//     let response = reqwest::blocking::get(url)?;
+//     let content = response.bytes()?;
 
-    fs::create_dir_all(install_dir)?;
+//     fs::create_dir_all(install_dir)?;
 
-    let filename = url.split('/').last().unwrap_or("llama.zip");
-    let filepath = install_dir.join(filename);
-    fs::write(&filepath, content)?;
+//     let filename = url.split('/').last().unwrap_or("llama.zip");
+//     let filepath = install_dir.join(filename);
+//     fs::write(&filepath, content)?;
 
-    if filename.ends_with(".zip") {
-        let output = Command::new("unzip")
-            .arg(&filepath)
-            .arg("-d")
-            .arg(install_dir)
-            .output()?;
+//     if filename.ends_with(".zip") {
+//         let output = Command::new("unzip")
+//             .arg(&filepath)
+//             .arg("-d")
+//             .arg(install_dir)
+//             .output()?;
         
-        if !output.status.success() {
-            return Err("Failed to extract zip file".into());
-        }
-    }
+//         if !output.status.success() {
+//             return Err("Failed to extract zip file".into());
+//         }
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 pub async fn download_with_progress(url: &str, download_path: &PathBuf) -> Result<String, String> {
     let filename = url.split('/').last()
         .ok_or_else(|| "Could not extract filename from URL".to_string())?
@@ -282,7 +282,7 @@ pub async fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
             let binary = detect_windows_binary();
             if let Some(url) = get_download_url(&platform, binary.as_ref()) {
                 // Use download_with_progress 
-                download_with_progress(url.as_str(), &install_dir).await;
+                let _ = download_with_progress(url.as_str(), &install_dir).await;
 
                 // Unzip directly into install_dir
                 let filename = url.split('/').last().unwrap_or("llama.zip");
@@ -308,7 +308,7 @@ pub async fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
         Platform::Linux => {
             if let Some(url) = get_download_url(&platform, None) {
                 // Use download_with_progress
-                download_with_progress(url.as_str(), &install_dir).await;
+                let _ = download_with_progress(url.as_str(), &install_dir).await;
 
                 // Unzip directly into install_dir
                 let filename = url.split('/').last().unwrap_or("llama.zip");
