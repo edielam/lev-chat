@@ -103,65 +103,96 @@ pub fn find_gguf_emmodel(workspace_path: &str) -> Result<PathBuf, String> {
         .map(|entry| entry.path())
         .ok_or_else(|| "No .gguf embedding model found in model directory".to_string())
 }
-async fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str) -> Result<CommandBuilder, String> {
-    let prompt = if config.prompt.starts_with("RAG-") {
-        let base_prompt = config.prompt.strip_prefix("RAG-").unwrap();
-        let rag_processor = RAGProcessor::new(512, 128, workspace_path)
-            .await
-            .map_err(|e| format!("Failed to initialize RAGProcessor: {:?}", e))?;
-        rag_processor.generate_rag_prompt(base_prompt, TOP_N_CONTEXTS)
-            .await
-            .map_err(|e| format!("Failed to generate RAG prompt: {:?}", e))?
+async fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str, tx: &mpsc::Sender<Message>) -> Result<CommandBuilder, String> {
+    // First, check for language model
+    let model_path = match if let Some(model_name) = &config.model_name {
+        Ok(Path::new(workspace_path).join("model").join(model_name))
     } else {
-        config.prompt.clone()
-    };
-    
-    // Rest of the function remains the same
-    let mut cmd = if cfg!(target_os = "windows") {
-        let mut cmd = CommandBuilder::new("cmd");
-        cmd.arg("/C");
-        cmd
-    } else {
-        let mut cmd = CommandBuilder::new("bash");
-        cmd.arg("-c");
-        cmd
-    };
-
-    let model_path = if let Some(model_name) = &config.model_name {
-        Path::new(workspace_path)
-            .join("model")
-            .join(model_name)
-    } else {
-        find_gguf_model(workspace_path)?
-    };
-
-    let mut command_str = String::from("llama-cli --color");
-    command_str.push_str(&format!(" -m \"{}\"", model_path.to_string_lossy()));
-
-    if let Some(temp) = config.temperature {
-        command_str.push_str(&format!(" --temp {}", temp));
-    }
-
-    if let Some(tokens) = config.max_tokens {
-        command_str.push_str(&format!(" -n {}", tokens));
-    }
-
-    if let Some(args) = &config.additional_args {
-        for (key, value) in args {
-            command_str.push_str(&format!(" --{} {}", key, value));
+        find_gguf_model(workspace_path)
+    } {
+        Ok(path) => path,
+        Err(_) => {
+            // No language model found - send WebSocket message
+            let error_msg = "No language model found. Please provide a language model.".to_string();
+            if let Err(e) = tx.send(Message::Text(error_msg.clone())).await {
+                error!("Failed to send WebSocket message: {}", e);
+            }
+            return Err("No language model found".to_string());
         }
-    }
-
-    if config.prompt.starts_with("RAG-") {
-        command_str.push_str(&format!(" -ngl 99 -p \" {}\"", prompt.replace("\"", "\\\"")));
-    } else {
-        command_str.push_str(&format!(" -ngl 99 -p \" {} {} \nYour response: \"", prompt.replace("\"", "\\\""), "PS: (End your response with [done])"));
     };
 
-    info!("Executing LLaMA command: {}", command_str);
-    cmd.arg(command_str);
+    // If prompt starts with RAG-, check for embedding model
+    if config.prompt.starts_with("RAG-") {
+        match find_gguf_emmodel(workspace_path) {
+            Ok(_) => {
+                // Embedding model exists, continue with RAG processing
+                let base_prompt = config.prompt.strip_prefix("RAG-").unwrap();
+                let rag_processor = RAGProcessor::new(512, 128, workspace_path)
+                    .await
+                    .map_err(|e| format!("Failed to initialize RAGProcessor: {:?}", e))?;
+                
+                let prompt = rag_processor.generate_rag_prompt(base_prompt, TOP_N_CONTEXTS)
+                    .await
+                    .map_err(|e| format!("Failed to generate RAG prompt: {:?}", e))?;
 
-    Ok(cmd)
+                // Rest of the RAG processing logic remains the same
+                let mut cmd = if cfg!(target_os = "windows") {
+                    let mut cmd = CommandBuilder::new("cmd");
+                    cmd.arg("/C");
+                    cmd
+                } else {
+                    let mut cmd = CommandBuilder::new("bash");
+                    cmd.arg("-c");
+                    cmd
+                };
+
+                let mut command_str = String::from("llama-cli --color");
+                command_str.push_str(&format!(" -m \"{}\"", model_path.to_string_lossy()));
+
+                // Add other config options as before...
+
+                command_str.push_str(&format!(" -ngl 99 -p \" {}\"", prompt.replace("\"", "\\\"")));
+
+                info!("Executing LLaMA command: {}", command_str);
+                cmd.arg(command_str);
+
+                Ok(cmd)
+            },
+            Err(_) => {
+                // No embedding model found - send WebSocket message
+                let error_msg = "Cannot perform RAG: No embedding model found. Please download an embedding model first.".to_string();
+                if let Err(e) = tx.send(Message::Text(error_msg.clone())).await {
+                    error!("Failed to send WebSocket message: {}", e);
+                }
+                return Err("No embedding model found".to_string());
+            }
+        }
+    } else {
+        // Non-RAG prompt processing remains the same
+        let mut cmd = if cfg!(target_os = "windows") {
+            let mut cmd = CommandBuilder::new("cmd");
+            cmd.arg("/C");
+            cmd
+        } else {
+            let mut cmd = CommandBuilder::new("bash");
+            cmd.arg("-c");
+            cmd
+        };
+
+        let mut command_str = String::from("llama-cli --color");
+        command_str.push_str(&format!(" -m \"{}\"", model_path.to_string_lossy()));
+
+        // Add other config options as before...
+
+        command_str.push_str(&format!(" -ngl 99 -p \" {} {} \nYour response: \"", 
+            config.prompt.replace("\"", "\\\""), 
+            "PS: (End your response with [done])"));
+
+        info!("Executing LLaMA command: {}", command_str);
+        cmd.arg(command_str);
+
+        Ok(cmd)
+    }
 }
 
 async fn handle_client(stream: TcpStream) {
@@ -303,7 +334,7 @@ async fn handle_client(stream: TcpStream) {
                             }
                         };
 
-                        let cmd = match construct_llama_command(&config, &workspace_path).await {
+                        let cmd = match construct_llama_command(&config, &workspace_path, &tx).await {
                             Ok(cmd) => cmd,
                             Err(e) => {
                                 error!("Failed to construct command: {}", e);

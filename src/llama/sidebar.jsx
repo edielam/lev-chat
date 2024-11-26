@@ -291,6 +291,7 @@ const RAGSidebar = ({onToggle}) => {
         setIsOpen(!isOpen);
         if (onToggle) {
         onToggle(!isOpen);
+        fetchModels();
         }
     };
     useEffect(() => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { X, Download, AlertTriangle, XIcon } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/tauri';
-import { lightTheme, Button } from './lamastyles';
+import { Button } from './lamastyles';
 
 const OverlayBackground = styled.div`
   position: fixed;
