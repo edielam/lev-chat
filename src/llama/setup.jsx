@@ -185,7 +185,7 @@ const SetupDownloadOverlay = ({
     <OverlayBackground>
       <OverlayContainer>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Download {modelType} Model</h2>
+          <h2>{modelType} Binaries</h2>
           <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
             <X size={24} />
           </button>
