@@ -91,7 +91,6 @@ fn detect_cuda_version() -> Option<u8> {
         version_match.parse().ok()
     }
     
-    // Add Linux/MacOS CUDA detection if needed
     #[cfg(not(windows))]
     { None }
 }
@@ -141,8 +140,122 @@ fn download_and_install(url: &str, install_dir: &PathBuf) -> Result<(), Box<dyn 
 
     Ok(())
 }
+pub async fn download_with_progress(url: &str, download_path: &PathBuf) -> Result<String, String> {
+    let filename = url.split('/').last()
+        .ok_or_else(|| "Could not extract filename from URL".to_string())?
+        .to_string();
+    let file_path = download_path.join(&filename);
 
-pub fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
+    if file_path.exists() {
+        return Err(format!("Model {} already exists", filename));
+    }
+
+    // Create channels for cancellation
+    let (lam_tx, mut lam_rx) = mpsc::channel(1);
+
+    // Update global state
+    {
+        let mut state = LLAMACPP_STATE.lock().unwrap();
+        state.is_downloading = true;
+        state.filename = Some(filename.clone());
+        state.downloaded_size = 0;
+        state.cancel_tx = Some(lam_tx);
+    }
+
+    // Prepare download
+    let client = Client::new();
+    let response = client.get(url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to initiate download: {}", e))?;
+
+    let total_size = response.content_length()
+        .ok_or_else(|| "Failed to get content length".to_string())?;
+
+    // Update total size in global state
+    {
+        let mut state = LLAMACPP_STATE.lock().unwrap();
+        state.total_size = Some(total_size);
+    }
+
+    // Prepare file for writing
+    fs::create_dir_all(&download_path)
+        .map_err(|e| format!("Failed to create directory: {}", e))?;
+
+    let mut file = File::create(&file_path)
+        .map_err(|e| format!("Failed to create file: {}", e))?;
+
+    // Stream download
+    let mut stream = response.bytes_stream();
+
+    loop {
+        tokio::select! {
+            Some(item) = stream.next() => {
+                let chunk = item
+                    .map_err(|e| format!("Error downloading chunk: {}", e))?;
+                
+                // Write chunk to file
+                file.write_all(&chunk)
+                    .map_err(|e| format!("Failed to write chunk: {}", e))?;
+
+                // Update downloaded size
+                {
+                    let mut state = LLAMACPP_STATE.lock().unwrap();
+                    state.downloaded_size += chunk.len() as u64;
+                }
+            }
+            _ = lam_rx.recv() => {
+                // Download cancelled
+                {
+                    let mut state = LLAMACPP_STATE.lock().unwrap();
+                    state.is_downloading = false;
+                }
+                // Optional: Remove partial download
+                std::fs::remove_file(&file_path).ok();
+                return Err("Download cancelled".to_string());
+            }
+            else => break
+        }
+    }
+
+    // Mark download as complete
+    {
+        let mut state = LLAMACPP_STATE.lock().unwrap();
+        state.is_downloading = false;
+        state.downloaded_size = total_size;
+    }
+
+    Ok(format!("Model {} downloaded successfully", filename))
+}
+
+#[tauri::command]
+pub fn get_setup_progress() -> Result<DownloadProgress, String> {
+    let state = LLAMACPP_STATE.lock().unwrap();
+    
+    Ok(DownloadProgress {
+        total_size: state.total_size,
+        downloaded_size: state.downloaded_size,
+        is_downloading: state.is_downloading,
+        filename: state.filename.clone(),
+        percentage: state.total_size
+            .map(|total| (state.downloaded_size as f64 / total as f64 * 100.0).round() as u8)
+    })
+}
+
+#[tauri::command]
+pub fn cancel_setup() -> Result<(), String> {
+    let mut state = DOWNLOAD_STATE.lock().unwrap();
+    
+    if let Some(cancel_tx) = state.cancel_tx.take() {
+        cancel_tx.try_send(()).map_err(|_| "Failed to send cancellation signal".to_string())?;
+        state.is_downloading = false;
+        Ok(())
+    } else {
+        Err("No active download to cancel".to_string())
+    }
+}
+
+pub async fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
     if is_llama_cpp_installed() {
         return Ok(());
     }
@@ -151,8 +264,8 @@ pub fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
     let doc_dir = path::document_dir()
         .ok_or_else(|| "Failed to get documents directory".to_string())?;
  
-    let install_dir = doc_dir.join("LevChat");
-    
+    let install_dir = doc_dir.join("LevChat").join("setup");
+    fs::create_dir_all(&install_dir)?; // Ensure directory exists
 
     match platform {
         Platform::MacOS => {
@@ -168,14 +281,79 @@ pub fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
         Platform::Windows => {
             let binary = detect_windows_binary();
             if let Some(url) = get_download_url(&platform, binary.as_ref()) {
-                download_and_install(&url, &install_dir.join("model"))?;
+                // Use download_with_progress 
+                download_with_progress(url.as_str(), &install_dir).await;
+
+                // Unzip directly into install_dir
+                let filename = url.split('/').last().unwrap_or("llama.zip");
+                let filepath = install_dir.join(filename);
+                
+                let output = Command::new("unzip")
+                    .arg(&filepath)
+                    .arg("-d")
+                    .arg(&install_dir)
+                    .arg("-o")  // overwrite existing files
+                    .output()?;
+                
+                if !output.status.success() {
+                    return Err("Failed to extract zip file".into());
+                }
+
+                // Remove the zip file after extraction
+                fs::remove_file(filepath)?;
             } else {
                 return Err("No suitable binary found for your system".into());
             }
         },
         Platform::Linux => {
             if let Some(url) = get_download_url(&platform, None) {
-                download_and_install(&url, &install_dir.join("model"))?;
+                // Use download_with_progress
+                download_with_progress(url.as_str(), &install_dir).await;
+
+                // Unzip directly into install_dir
+                let filename = url.split('/').last().unwrap_or("llama.zip");
+                let filepath = install_dir.join(filename);
+                
+                let output = Command::new("unzip")
+                    .arg(&filepath)
+                    .arg("-d")
+                    .arg(&install_dir)
+                    .arg("-o")  // overwrite existing files
+                    .output()?;
+                
+                // Remove the zip file after extraction
+                fs::remove_file(filepath)?;
+
+                // If there's a nested folder from the zip, flatten its contents
+                if let Ok(entries) = fs::read_dir(&install_dir) {
+                    let nested_folders: Vec<_> = entries
+                        .filter_map(|entry| entry.ok())
+                        .filter(|entry| entry.path().is_dir() && entry.path().join("bin").exists())
+                        .collect();
+
+                    for folder in nested_folders {
+                        let nested_path = folder.path();
+                        
+                        // Move contents of the nested folder to install_dir
+                        for nested_entry in fs::read_dir(&nested_path)? {
+                            let nested_entry = nested_entry?;
+                            let dest = install_dir.join(nested_entry.file_name());
+                            
+                            if nested_entry.path().is_file() {
+                                fs::rename(nested_entry.path(), dest)?;
+                            } else if nested_entry.path().is_dir() {
+                                fs::rename(nested_entry.path(), dest)?;
+                            }
+                        }
+
+                        // Remove the now-empty nested folder
+                        fs::remove_dir(nested_path)?;
+                    }
+                }
+
+                if !output.status.success() {
+                    return Err("Failed to extract zip file".into());
+                }
             } else {
                 return Err("Failed to get download URL for Linux".into());
             }
@@ -186,11 +364,11 @@ pub fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tauri::command]
-pub fn install_llama_cpp_command() -> Result<(), String> {
-    install_llama_cpp().map_err(|e| e.to_string())
+pub async fn install_llama_cpp_command() -> Result<(), String> {
+    install_llama_cpp().await.map_err(|e| e.to_string())
 }
 lazy_static! {
-    static ref DOWNLOAD_STATE: Arc<Mutex<DownloadState>> = Arc::new(Mutex::new(DownloadState::default()));
+    static ref LLAMACPP_STATE: Arc<Mutex<DownloadState>> = Arc::new(Mutex::new(DownloadState::default()));
 }
 
 #[derive(Default)]
@@ -201,6 +379,10 @@ struct DownloadState {
     filename: Option<String>,
     cancel_tx: Option<mpsc::Sender<()>>,
 }
+lazy_static! {
+    static ref DOWNLOAD_STATE: Arc<Mutex<DownloadState>> = Arc::new(Mutex::new(DownloadState::default()));
+}
+
 
 #[tauri::command]
 pub async fn download_model(
