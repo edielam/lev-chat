@@ -63,31 +63,14 @@ const SetupDownloadOverlay = ({
     const [isDownloading, setIsDownloading] = useState(false);
     const progressIntervalRef = useRef(null);
 
-    useEffect(() => {
-        const isValid = url && (
-          url.toLowerCase().endsWith('.zip') || 
-          url.toLowerCase().includes('.zip?download=true')
-        ) && (
-          (modelType === 'Windows' && url.toLowerCase().includes('win')) ||
-          (modelType === 'Linux' && url.toLowerCase().includes('ubuntu'))
-        );
-        
-        setIsValidUrl(isValid);
-        
-        // More specific error messaging
-        let errorMessage = null;
-        if (!url) {
-          errorMessage = 'URL is required';
-        } else if (!url.toLowerCase().endsWith('.zip') && !url.toLowerCase().includes('.zip?download=true')) {
-          errorMessage = 'Invalid file type. Download zipped binary files';
-        } else if (modelType === 'Windows' && !url.toLowerCase().includes('win')) {
-          errorMessage = 'URL must contain "win" for Windows binaries';
-        } else if (modelType === 'Linux' && !url.toLowerCase().includes('ubuntu')) {
-          errorMessage = 'URL must contain "ubuntu" for Linux binaries';
-        }
-        
-        setLocalError(errorMessage);
-    }, [url, modelType]);
+  useEffect(() => {
+    const isValid = url && (
+      url.toLowerCase().endsWith('.zip') || 
+      url.toLowerCase().includes('.zip?download=true')
+    );
+    setIsValidUrl(isValid);
+    setLocalError(isValid ? null : 'Invalid file type. Download zipped binary files');
+  }, [url]);
 
   useEffect(() => {
     const checkInitialDownloadProgress = async () => {

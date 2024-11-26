@@ -519,7 +519,7 @@ pub async fn download_setup(
 
                 // Update downloaded size
                 {
-                    let mut state = DOWNLOAD_STATE.lock().unwrap();
+                    let mut state = LLAMACPP_STATE.lock().unwrap();
                     state.downloaded_size += chunk.len() as u64;
                 }
             }
@@ -573,7 +573,19 @@ pub fn cancel_setup() -> Result<(), String> {
         Err("No active download to cancel".to_string())
     }
 }
+#[tauri::command]
+pub fn reset_setup_progress() -> Result<(), String> {
+    let mut state = LLAMACPP_STATE.lock().unwrap();
+    
+    // Reset all download state values
+    state.total_size = None;
+    state.downloaded_size = 0;
+    state.is_downloading = false;
+    state.filename = None;
+    state.cancel_tx = None;
 
+    Ok(())
+}
 #[tauri::command]
 pub async fn download_model(
     url: String, 
