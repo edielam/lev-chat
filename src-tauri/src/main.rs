@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .invoke_handler(tauri::generate_handler![
             download_model,
             list_embedding_models, list_language_models,
-            is_llama_cpp_installed, install_llama_cpp_command,
+            is_llama_cpp_installed, download_setup,
             get_download_progress, cancel_download, cancel_setup,
             get_setup_progress
         ])
