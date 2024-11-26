@@ -40,13 +40,32 @@ fn detect_platform() -> Platform {
         _ => panic!("Unsupported operating system"),
     }
 }
+
 #[tauri::command]
 pub fn is_llama_cpp_installed() -> bool {
-    Command::new("llama-cli")
+    // Get the setup directory path
+    let doc_dir = match dirs::document_dir() {
+        Some(dir) => dir,
+        None => return false,
+    };
+    let setup_dir = doc_dir.join("LevChat").join("setup");
+    
+    // Construct the full path to llama-cli
+    let llama_cli_path = setup_dir.join("llama-cli");
+    
+    // Try running with full path
+    Command::new(llama_cli_path)
         .arg("--help")
         .output()
         .map(|output| output.status.success())
-        .unwrap_or(false)
+        .unwrap_or_else(|_| {
+            // Fallback to system-wide check if full path fails
+            Command::new("llama-cli")
+                .arg("--help")
+                .output()
+                .map(|output| output.status.success())
+                .unwrap_or(false)
+        })
 }
 
 fn detect_windows_binary() -> Option<WindowsBinary> {
