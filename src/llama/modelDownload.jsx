@@ -263,7 +263,8 @@ const ModelDownloadOverlay = ({
               onClick={handleClose}
               style={{ 
                 padding: '0.5rem 1rem', 
-                // background: '#f0f0f0', 
+                background: '#f0f0f0',
+                color: 'black', 
                 border: 'none', 
                 borderRadius: '0.5rem',
                 cursor: 'pointer' 

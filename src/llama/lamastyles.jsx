@@ -156,7 +156,7 @@ export const Input = styled.textarea`
 
 export const Button = styled.button`
   background-color: ${props => props.theme.accentHover};
-  color: ${props => props.theme.background};
+  color: ${props => props.theme.text};
   border: none;
   border-radius: 0.75rem;
   padding: 0.75rem 1.25rem;
