@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { X, Download, AlertTriangle } from 'lucide-react';
+import { X, Download, AlertTriangle, XIcon } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/tauri';
+import { Button } from './lamastyles';
 
-const ProgressOverlay = styled.div`
+const OverlayBackground = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -16,229 +17,285 @@ const ProgressOverlay = styled.div`
   z-index: 1000;
 `;
 
-const ProgressContainer = styled.div`
-  background-color: ${props => props.theme.background};
-  border-radius: 0.5rem;
+const OverlayContainer = styled.div`
+  background-color: ${props => props.theme.secondary};
+  border-radius: 1rem;
   padding: 2rem;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  position: relative;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 `;
 
-const CloseButton = styled.button`
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  color: ${props => props.theme.textMuted};
-  cursor: pointer;
-  
-  &:hover {
-    color: ${props => props.theme.textStrong};
-  }
+const ProgressContainer = styled.div`
+  width: 100%;
+  background-color: #e0e0e0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  height: 10px;
+  margin-top: 1rem;
 `;
 
 const ProgressBar = styled.div`
-  width: 100%;
-  height: 20px;
-  background-color: ${props => props.theme.border};
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 1rem;
-`;
-
-const ProgressFill = styled.div`
-  width: ${props => props.percentage}%;
+  width: ${props => props.progress}%;
   height: 100%;
-  background-color: ${props => props.theme.accent};
+  background-color: ${props => 
+    props.error ? '#ff4d4d' : 
+    props.progress === 100 ? '#275c91' : 
+    props.theme.progressbarTrack};
   transition: width 0.5s ease;
 `;
 
-const ProgressText = styled.div`
-  display: flex;
-  justify-content: space-between;
-  color: ${props => props.theme.textStrong};
-  margin-bottom: 1rem;
-`;
-
-const ErrorMessage = styled.div`
-  display: flex;
-  align-items: center;
-  color: red;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: ${props => props.theme.border};
-  border-radius: 0.5rem;
-`;
-
-const CancelButton = styled.button`
-  background-color: ${props => props.theme.accentHover};
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 1rem;
-  width: 100%;
-  justify-content: center;
-
-  &:hover {
-    background-color: ${props => props.theme.accent};
-  }
-`;
-
-const LlamaCppInstallProgress = ({ 
-  onCancel, 
-  onComplete 
+const SetupDownloadOverlay = ({ 
+  isOpen, 
+  onClose, 
+  modelType, 
+  url 
 }) => {
-  const [progress, setProgress] = useState({
-    percentage: 0,
-    downloaded_size: 0,
-    total_size: 0,
-    filename: '',
-    is_downloading: false,
-    is_unzipping: false,
-    unzip_total_files: 0,
-    unzip_current_progress: 0,
-    unzip_current_file: null
-  });
-  const [statusMessage, setStatusMessage] = useState('Preparing setup...');
-  const [error, setError] = useState(null);
+    const [isValidUrl, setIsValidUrl] = useState(false);
+    const [localError, setLocalError] = useState(null);
+    const [downloadProgress, setDownloadProgress] = useState(null);
+    const [downloadError, setDownloadError] = useState(null);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const progressIntervalRef = useRef(null);
 
   useEffect(() => {
-    let progressInterval;
-    
-    const startInstallation = async () => {
-      try {
-        await invoke('install_llama_cpp_command');
-      } catch (error) {
-        console.error('Setup initiation error:', error);
-        setError(error.toString());
-        setStatusMessage('Setup failed to start');
+    const isValid = url && (
+      url.toLowerCase().endsWith('.zip') || 
+      url.toLowerCase().includes('.zip?download=true')
+    );
+    setIsValidUrl(isValid);
+    setLocalError(isValid ? null : 'Invalid file type. Download zipped binary files');
+  }, [url]);
+
+  useEffect(() => {
+    const checkInitialDownloadProgress = async () => {
+      if (isOpen) {
+        try {
+          const progress = await invoke('get_download_progress');
+          
+          if (progress.is_downloading) {
+            setIsDownloading(true);
+            setDownloadProgress(progress.percentage || 0);
+            
+            // If download is in progress, always start tracking progress
+            startDownloadProgress();
+          } else {
+            // Reset states if no download is in progress
+            setDownloadProgress(null);
+            setIsDownloading(false);
+            setDownloadError(null);
+          }
+        } catch (error) {
+          console.error('Error checking initial download progress:', error);
+          // Reset all states in case of error
+          setDownloadProgress(null);
+          setIsDownloading(false);
+          setDownloadError(error instanceof Error ? error.message : String(error));
+        }
       }
     };
+  
+    // If modal is open, immediately check download status
+    if (isOpen) {
+      checkInitialDownloadProgress();
+    }
+  }, [isOpen]); // Dependency on isOpen ensures this runs when modal opens
 
-    const trackProgress = async () => {
+  const startDownloadProgress = () => {
+    progressIntervalRef.current = setInterval(async () => {
       try {
-        const currentProgress = await invoke('get_setup_progress');
+        const progress = await invoke('get_download_progress');
         
-        // Update progress state
-        setProgress(currentProgress);
-
-        // Update status based on current stage
-        if (currentProgress.is_downloading) {
-          if (currentProgress.percentage === 0) {
-            setStatusMessage('Preparing download...');
-          } else {
-            setStatusMessage(`Downloading ${currentProgress.filename}`);
-          }
-        } else if (currentProgress.is_unzipping) {
-          // Calculate unzip progress percentage
-          const unzipPercentage = currentProgress.unzip_total_files > 0 
-            ? Math.round((currentProgress.unzip_current_progress / currentProgress.unzip_total_files) * 100)
-            : 0;
+        if (progress.percentage !== undefined) {
+          setDownloadProgress(progress.percentage);
           
-          setStatusMessage(`Extracting: ${currentProgress.unzip_current_file || 'Preparing...'}`);
-        } else if (currentProgress.percentage === 100) {
-          setStatusMessage('Setup complete!');
-          onComplete && onComplete();
-          clearInterval(progressInterval);
+          if (progress.percentage === 100 || !progress.is_downloading) {
+            stopProgressTracking();
+          }
         }
       } catch (error) {
-        console.error('Progress tracking error:', error);
-        setError(error.toString());
-        clearInterval(progressInterval);
+        console.error('Error fetching download progress:', error);
+        stopProgressTracking();
       }
-    };
+    }, 2000);
+  };
 
-    // Initial setup and start of installation
-    startInstallation();
-
-    // Start progress tracking
-    progressInterval = setInterval(trackProgress, 2000);
-
-    // Cleanup interval on unmount
-    return () => {
-      if (progressInterval) {
-        clearInterval(progressInterval);
-      }
-    };
-  }, [onComplete]);
-
-  const handleCancel = async () => {
-    try {
-      await invoke('cancel_setup');
-      onCancel && onCancel();
-    } catch (error) {
-      console.error('Cancellation error:', error);
-      setError(error.toString());
+  const stopProgressTracking = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
     }
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const handleConfirmDownload = async () => {
+    if (isValidUrl) {
+      try {
+
+        setDownloadError(null);
+        setDownloadProgress(0);
+        setIsDownloading(true);
+
+        startDownloadProgress();
+
+        await invoke('download_model', { 
+          url, 
+          modelType: modelType === 'language' ? 'languageModel' : 'embeddingModel' 
+        });
+
+      } catch (error) {
+
+        stopProgressTracking();
+        setDownloadError(error instanceof Error ? error.message : String(error));
+        setDownloadProgress(null);
+        setIsDownloading(false);
+      }
+    }
   };
 
-  // Determine which progress to show
-  const displayPercentage = progress.is_unzipping 
-    ? (progress.unzip_total_files > 0 
-      ? Math.round((progress.unzip_current_progress / progress.unzip_total_files) * 100)
-      : 0)
-    : progress.percentage;
+  const handleCancelDownload = async () => {
+    try {
+      await invoke('cancel_download');
+      stopProgressTracking();
+      setDownloadProgress(null);
+      setIsDownloading(false);
+      onClose();
+    } catch (error) {
+      console.error('Error cancelling download:', error);
+    }
+  };
+
+  const handleClose = () => {
+
+    stopProgressTracking();
+    
+
+    setDownloadProgress(null);
+    setDownloadError(null);
+    setLocalError(null);
+    setIsDownloading(false);
+    onClose();
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <ProgressOverlay>
-      <ProgressContainer>
-        <CloseButton onClick={onCancel}>
-          <X size={24} />
-        </CloseButton>
-        
-        <ProgressText>
-          <span>{statusMessage}</span>
-          {progress.is_downloading && (
-            <span>
-              {formatFileSize(progress.downloaded_size)} / 
-              {formatFileSize(progress.total_size || 0)}
-            </span>
+    <OverlayBackground>
+      <OverlayContainer>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>Download {modelType === 'language' ? 'Language' : 'Embedding'} Model</h2>
+          <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+            <X size={24} />
+          </button>
+        </div>
+
+        <div>
+          <p><strong>Download URL:</strong> {url}</p>
+          
+          {localError && (
+            <div style={{ color: 'red', display: 'flex', alignItems: 'center', marginTop: '0.5rem' }}>
+              <AlertTriangle color="red" size={20} style={{ marginRight: '0.5rem' }} />
+              {localError}
+            </div>
           )}
-          {progress.is_unzipping && (
-            <span>
-              {progress.unzip_current_progress} / {progress.unzip_total_files} files
-            </span>
+
+          {downloadError && (
+            <div style={{ color: 'red', display: 'flex', alignItems: 'center', marginTop: '0.5rem' }}>
+              <AlertTriangle color="red" size={20} style={{ marginRight: '0.5rem' }} />
+              {downloadError}
+            </div>
           )}
-        </ProgressText>
-        
-        <ProgressBar>
-          <ProgressFill 
-            percentage={displayPercentage || 0} 
-          />
-        </ProgressBar>
-        
-        {error && (
-          <ErrorMessage>
-            <AlertTriangle size={18} />
-            {error}
-          </ErrorMessage>
-        )}
-        
-        <CancelButton onClick={handleCancel}>
-          <X size={18} />
-          Cancel Installation
-        </CancelButton>
-      </ProgressContainer>
-    </ProgressOverlay>
+
+          <ProgressContainer>
+            <ProgressBar 
+              progress={downloadProgress || 0} 
+              error={!!downloadError}
+            />
+          </ProgressContainer>
+
+          <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+            {downloadProgress !== null && `${downloadProgress}%`}
+          </div>
+        </div>
+
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          marginTop: '1rem', 
+          gap: '1rem' 
+        }}>
+        {downloadProgress === 100 ? (
+            <Button
+            onClick={handleClose}
+            style={{ 
+                padding: '0.5rem 1rem', 
+                // background: '#4caf50', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                width: '100%'
+            }}
+            >
+            Done
+            </Button>
+        ) : isDownloading ? (
+            <Button
+              onClick={handleCancelDownload}
+              style={{ 
+                padding: '0.5rem 1rem', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer' 
+              }}
+            >
+              <XIcon size={18} />
+              Cancel
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleClose}
+              style={{ 
+                padding: '0.5rem 1rem', 
+                background: '#f0f0f0',
+                color: 'black', 
+                border: 'none', 
+                borderRadius: '0.5rem',
+                cursor: 'pointer' 
+              }}
+            >
+              Close
+            </Button>
+          )}
+          {downloadProgress !== 100 && (
+          <Button 
+            onClick={handleConfirmDownload}
+            disabled={!isValidUrl || (downloadProgress !== null && downloadProgress < 100)}
+            style={{ 
+              padding: '0.5rem 1rem',
+              border: 'none',
+              color: 'white', 
+              borderRadius: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer'
+            }}
+          >
+            <Download size={18} />
+            Confirm
+          </Button>
+          )}
+        </div>
+      </OverlayContainer>
+    </OverlayBackground>
   );
 };
 
-export default LlamaCppInstallProgress;
+export default SetupDownloadOverlay;

@@ -4,6 +4,7 @@ import { Download, Database, FileText, MenuIcon, CheckCircle2, AlertTriangle, Ch
 import { invoke } from '@tauri-apps/api/tauri';
 import ModelDownloadOverlay from './modelDownload';
 import LlamaCppInstallProgress from './setup';
+import SetupDownloadOverlay from './setup';
 
 const SidebarContainer = styled.div`
   position: fixed;
@@ -201,11 +202,12 @@ const InstallButton = styled.button`
 `;
 
 const StatusMessage = styled.div`
-  display: flex;
+//   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: ${props => props.theme.textMuted};
   margin-top: 0.5rem;
+  margin-bottom: 1rem;
 `;
 
 const RAGSidebar = ({onToggle}) => {
@@ -217,6 +219,8 @@ const RAGSidebar = ({onToggle}) => {
     const [installError, setInstallError] = useState(null);
     const [languageModels, setLanguageModels] = useState([]);
     const [embeddingModels, setEmbeddingModels] = useState([]);
+    const [windowsOS, setWindowsOS] = useState([]);
+    const [linuxOS, setLinuxOS] = useState([]);
     const [activeSetupType, setActiveSetupType] = useState(null);
 
     const [sectionsOpen, setSectionsOpen] = useState({
@@ -230,7 +234,13 @@ const RAGSidebar = ({onToggle}) => {
     languageModel: 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf',
     embeddingModel: 'https://huggingface.co/CompendiumLabs/bge-large-en-v1.5-gguf/resolve/main/bge-large-en-v1.5-f16.gguf'
     });
+
+    const [setupUrls, setSetupUrls] = useState({
+        Windows: 'https://github.com/ggerganov/llama.cpp/releases/download/b4179/llama-b4179-bin-win-avx2-x64.zip',
+        Linux: 'https://github.com/ggerganov/llama.cpp/releases/download/b4179/llama-b4179-bin-ubuntu-x64.zip'
+        });
     const [activeDownloadType, setActiveDownloadType] = useState(null);
+
 
     useEffect(() => {
         checkLlamaCppInstallation();
@@ -242,21 +252,6 @@ const RAGSidebar = ({onToggle}) => {
         setLlamaCppInstalled(isInstalled);
         } catch (error) {
         console.error('Error checking llama.cpp installation:', error);
-        }
-    };
-
-    const handleInstallLlamaCpp = async () => {
-        setIsInstalling(true);
-        setInstallError(null);
-        setActiveSetupType('llamacpp');
-    
-        try {
-            // The actual installation is now handled in the progress component
-            // Just set the state to trigger the progress modal
-        } catch (error) {
-            console.error('Installation error:', error);
-            setInstallError(error.toString());
-            setActiveSetupType(null);
         }
     };
     
@@ -277,6 +272,13 @@ const RAGSidebar = ({onToggle}) => {
         [key]: value
         }));
     };
+    const handleSetupUrlChange = (type, value) => {
+        const key = type === 'os' ? 'Windows' : 'Linux';
+        setSetupUrls(prev => ({
+        ...prev,
+        [key]: value
+        }));
+    };
     
     const handleModelDownload = async (type) => {
         console.log(`Attempting to download ${type} model`);
@@ -292,6 +294,12 @@ const RAGSidebar = ({onToggle}) => {
       const cancelDownload = () => {
         setActiveDownloadType(null);
       };
+    const handleInstallLlamaCpp = async (type) => {
+        // const url = type === 'language' ? modelUrls.languageModel : modelUrls.embeddingModel;
+        // setIsInstalling(true);
+        // setInstallError(null);
+        setActiveSetupType(type);
+    };
     
 
     const toggleSection = (section) => {
@@ -343,37 +351,71 @@ const RAGSidebar = ({onToggle}) => {
             <SectionHeader onClick={() => toggleSection('prerequisites')}>
                 <SectionTitle>
                 <Download size={18} />
-                Prerequisites Setup
+                Setup (llama.cpp)
                 </SectionTitle>
                 {sectionsOpen.prerequisites ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </SectionHeader>
 
             {sectionsOpen.prerequisites && (
                 <>
-                {!llamaCppInstalled ? (
-                    <>
-                    <p>llama.cpp is required for local AI processing.</p>
-                    <InstallButton 
-                        onClick={handleInstallLlamaCpp}
-                        disabled={isInstalling}
-                    >
-                        {isInstalling ? 'Setting up llama.cpp...' : 'Setup llama.cpp'}
-                    </InstallButton>
-                    
-                    {installError && (
-                        <StatusMessage>
-                        <AlertTriangle color="red" size={18} />
-                        Installation failed: {installError}
-                        </StatusMessage>
-                    )}
-                    </>
-                ) : (
-                    <StatusMessage>
-                    <CheckCircle2 color="green" size={18} />
-                    llama.cpp is installed
-                    </StatusMessage>
-                )}
-                </>
+                <StatusMessage>
+            You can use the pre-loaded URLs or visit the{' '}
+            <a 
+                href="https://github.com/ggerganov/llama.cpp/releases/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                    color: '#0066cc', 
+                    textDecoration: 'underline', 
+                    marginLeft: '4px'
+                }}
+            >
+                llama.cpp releases page
+            </a>{' '}
+            to download compatible binaries.
+        </StatusMessage>
+               
+            <ModelDownloadSection>
+                <ModelDownloadGroup>
+                    <ModelUrlLabel>Windows-x64</ModelUrlLabel>
+                    <ModelDownloadContainer>
+                        <ModelUrlInput 
+                        placeholder="Enter URL for llama binaries"
+                        value={setupUrls.Windows}
+                        onChange={(e) => handleSetupUrlChange('Windows', e.target.value)}
+                        />
+                        <DownloadModelButton 
+                        onClick={(e) => {
+                            e.preventDefault(); // Prevent default form submission
+                            e.stopPropagation(); // Stop event from bubbling
+                            console.log('Download button clicked for windows'); // Debug log
+                            handleInstallLlamaCpp ('Windows');
+                        }}>
+                        <Download size={18} />
+                        </DownloadModelButton>
+                    </ModelDownloadContainer>
+                </ModelDownloadGroup>
+                <ModelDownloadGroup>
+                    <ModelUrlLabel>Linux-x64</ModelUrlLabel>
+                    <ModelDownloadContainer>
+                        <ModelUrlInput 
+                        placeholder="Enter URL for llama binaries"
+                        value={setupUrls.Linux}
+                        onChange={(e) => handleSetupUrlChange('Linux', e.target.value)}
+                        />
+                        <DownloadModelButton 
+                        onClick={(e) => {
+                            e.preventDefault(); // Prevent default form submission
+                            e.stopPropagation(); // Stop event from bubbling
+                            console.log('Download button clicked for linux'); // Debug log
+                            handleInstallLlamaCpp ('Linux');
+                        }}>
+                        <Download size={18} />
+                        </DownloadModelButton>
+                    </ModelDownloadContainer>
+                </ModelDownloadGroup>
+            </ModelDownloadSection>
+            </>
             )}
             </SidebarSection>
 
@@ -520,12 +562,12 @@ const RAGSidebar = ({onToggle}) => {
             url={modelUrls[activeDownloadType === 'language' ? 'languageModel' : 'embeddingModel']}
      />
         </SidebarContainer>
-        {activeSetupType === 'llamacpp' && (
-                <LlamaCppInstallProgress
-                    onCancel={cancelInstallation}
-                    onComplete={handleInstallComplete}
-                />
-            )}
+        <SetupDownloadOverlay
+            isOpen={!!activeSetupType}
+            onClose={cancelInstallation}
+            modelType={activeSetupType}
+            url={setupUrls[activeSetupType === 'os' ? 'Windows' : 'Linux']}
+     />
         </>
     );
     };
