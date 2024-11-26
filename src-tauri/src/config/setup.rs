@@ -523,16 +523,16 @@ pub async fn download_setup(
                     state.downloaded_size += chunk.len() as u64;
                 }
             }
-            _ = cancel_rx.recv() => {
-                // Download cancelled
-                {
-                    let mut state =  LLAMACPP_STATE.lock().unwrap();
-                    state.is_downloading = false;
-                }
-                // Optional: Remove partial download
-                std::fs::remove_file(&file_path).ok();
-                return Err("Download cancelled".to_string());
-            }
+            // _ = cancel_rx.recv() => {
+            //     // Download cancelled
+            //     {
+            //         let mut state =  LLAMACPP_STATE.lock().unwrap();
+            //         state.is_downloading = false;
+            //     }
+            //     // Optional: Remove partial download
+            //     std::fs::remove_file(&file_path).ok();
+            //     return Err("Download cancelled".to_string());
+            // }
             else => break
         }
     }

@@ -169,11 +169,9 @@ const SetupDownloadOverlay = ({
     }
   };
 
-  const handleClose = () => {
-
-    stopProgressTracking();
-    
-
+  const handleClose = async () => {
+    // stopProgressTracking();
+    await invoke('reset_setup_progress');
     setDownloadProgress(null);
     setDownloadError(null);
     setLocalError(null);
