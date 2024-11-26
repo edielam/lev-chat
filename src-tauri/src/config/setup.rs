@@ -473,7 +473,7 @@ pub async fn download_setup(
         .send()
         .await
         .map_err(|e| format!("Failed to verify download link: {}", e))?;
-    
+
     if !response.status().is_success() {
         return Err(format!("Invalid download link. Server returned status: {}", response.status()));
     }
@@ -594,6 +594,106 @@ pub fn reset_setup_progress() -> Result<(), String> {
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn unzip_setup(url: String, model_type: String) -> Result<String, String> {
+    // Prepare download path similar to download_setup function
+    let doc_dir = path::document_dir()
+        .ok_or_else(|| "Failed to get documents directory".to_string())?;
+ 
+    let levchat_dir = doc_dir.join("LevChat");
+    let download_path = match model_type.as_str() {
+        "Windows" => levchat_dir.join("setup"),
+        "Linux" => levchat_dir.join("setup"),
+        _ => return Err("Invalid binary type".to_string())
+    };
+
+    // Extract filename from the last part of the URL
+    let filename = url.split('/').last()
+        .ok_or_else(|| "Invalid URL format".to_string())?;
+
+    // Construct full path to the ZIP file
+    let file_path = download_path.join(filename);
+
+    // Verify the ZIP file exists
+    if !file_path.exists() {
+        return Err(format!("ZIP file not found: {}", file_path.display()));
+    }
+
+    // Create a destination directory for extraction
+    let extract_dir = download_path.join(filename.replace(".zip", ""));
+    fs::create_dir_all(&extract_dir)
+        .map_err(|e| format!("Failed to create extraction directory: {}", e))?;
+
+    // Open the zip file
+    let zip_file = fs::File::open(&file_path)
+        .map_err(|e| format!("Failed to open zip file: {}", e))?;
+
+    let mut archive = zip::ZipArchive::new(zip_file)
+        .map_err(|e| format!("Failed to read zip archive: {}", e))?;
+
+    // Extract each file with full path preservation
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)
+            .map_err(|e| format!("Failed to extract file {}: {}", i, e))?;
+        
+        let outpath = match file.enclosed_name() {
+            Some(path) => extract_dir.join(path),
+            None => continue
+        };
+
+        // Create parent directories if they don't exist
+        if file.name().ends_with('/') {
+            fs::create_dir_all(&outpath)
+                .map_err(|e| format!("Failed to create directory {}: {}", outpath.display(), e))?;
+        } else {
+            // Ensure parent directory exists
+            if let Some(parent) = outpath.parent() {
+                fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create parent directory: {}", e))?;
+            }
+
+            // Write file contents
+            let mut outfile = fs::File::create(&outpath)
+                .map_err(|e| format!("Failed to create output file {}: {}", outpath.display(), e))?;
+            
+            std::io::copy(&mut file, &mut outfile)
+                .map_err(|e| format!("Failed to write file {}: {}", outpath.display(), e))?;
+        }
+    }
+
+    // Remove the original ZIP file
+    fs::remove_file(&file_path)
+        .map_err(|e| format!("Failed to remove zip file: {}", e))?;
+
+    // Recursively move contents to parent directory if extract_dir contains only one folder
+    let extract_contents: Vec<_> = fs::read_dir(&extract_dir)
+        .map_err(|e| format!("Failed to read extraction directory: {}", e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Failed to read extraction directory: {}", e))?;
+
+    if extract_contents.len() == 1 {
+        let single_item = extract_contents[0].path();
+        if single_item.is_dir() {
+            // Move contents of the single subdirectory up
+            for entry in fs::read_dir(&single_item)
+                .map_err(|e| format!("Failed to read subdirectory: {}", e))? {
+                let entry = entry
+                    .map_err(|e| format!("Failed to read directory entry: {}", e))?;
+                let destination = extract_dir.join(entry.file_name());
+                fs::rename(entry.path(), destination)
+                    .map_err(|e| format!("Failed to move file: {}", e))?;
+            }
+            
+            // Remove the now-empty subdirectory
+            fs::remove_dir(single_item)
+                .map_err(|e| format!("Failed to remove subdirectory: {}", e))?;
+        }
+    }
+
+    Ok(format!("Successfully extracted {} to {}", filename, extract_dir.display()))
+}
+
 #[tauri::command]
 pub async fn download_model(
     url: String, 

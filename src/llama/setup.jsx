@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { X, Download, AlertTriangle, XIcon } from 'lucide-react';
+import { X, Download, AlertTriangle, XIcon, FileArchive } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/tauri';
 import { Button } from './lamastyles';
 
@@ -61,6 +61,8 @@ const SetupDownloadOverlay = ({
     const [downloadProgress, setDownloadProgress] = useState(null);
     const [downloadError, setDownloadError] = useState(null);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isUnzipping, setIsUnzipping] = useState(false);
+    const [unzipError, setUnzipError] = useState(null);
     const progressIntervalRef = useRef(null);
 
   useEffect(() => {
@@ -179,8 +181,25 @@ const SetupDownloadOverlay = ({
     onClose();
   };
 
-  if (!isOpen) return null;
+  const handleConfirmUnzip = async () => {
+    try {
+      setIsUnzipping(true);
+      setUnzipError(null);
+  
+      const result = await invoke('unzip_setup', { 
+        url,
+        modelType: modelType 
+      });
+  
+      // Success handling
+      onClose();
+    } catch (error) {
+      setUnzipError(error instanceof Error ? error.message : String(error));
+      setIsUnzipping(false);
+    }
+  };
 
+  if (!isOpen) return null;
   return (
     <OverlayBackground>
       <OverlayContainer>
@@ -208,6 +227,13 @@ const SetupDownloadOverlay = ({
             </div>
           )}
 
+          {unzipError && (
+            <div style={{ color: 'red', display: 'flex', alignItems: 'center', marginTop: '0.5rem' }}>
+              <AlertTriangle color="red" size={20} style={{ marginRight: '0.5rem' }} />
+              {unzipError}
+            </div>
+          )}
+
           <ProgressContainer>
             <ProgressBar 
               progress={downloadProgress || 0} 
@@ -226,10 +252,12 @@ const SetupDownloadOverlay = ({
           marginTop: '1rem', 
           gap: '1rem' 
         }}>
-        {downloadProgress === 100 ? (
+        {/* Unzip Confirmation State */}
+        {downloadProgress === 100 && !isUnzipping && (
+          <>
             <Button
-            onClick={handleClose}
-            style={{ 
+              onClick={handleClose}
+              style={{ 
                 padding: '0.5rem 1rem', 
                 // background: '#4caf50', 
                 color: 'white', 
@@ -239,62 +267,99 @@ const SetupDownloadOverlay = ({
                 alignItems: 'center',
                 gap: '0.5rem',
                 cursor: 'pointer',
-                width: '100%'
-            }}
+                width: '50%'
+              }}
             >
-            Done
+              Cancel
             </Button>
-        ) : isDownloading ? (
-            <Button
-              onClick={handleCancelDownload}
+            <Button 
+              onClick={handleConfirmUnzip}
               style={{ 
-                padding: '0.5rem 1rem', 
+                padding: '0.5rem 1rem',
+                border: 'none',
                 color: 'white', 
-                border: 'none', 
                 borderRadius: '0.5rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                cursor: 'pointer' 
+                cursor: 'pointer',
+                width: '50%'
               }}
             >
-              <XIcon size={18} />
-              Cancel
+              <FileArchive size={18} />
+              Unpack
             </Button>
-          ) : (
+          </>
+        )}
+
+        {/* Unzipping State */}
+        {isUnzipping && (
+          <div style={{ 
+            width: '100%', 
+            textAlign: 'center', 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center' 
+          }}>
+            Unpacking binaries...
+          </div>
+        )}
+
+        {/* Download States */}
+        {downloadProgress !== 100 && !isUnzipping && (
+          <>
+            {isDownloading ? (
+              <Button
+                onClick={handleCancelDownload}
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer' 
+                }}
+              >
+                <XIcon size={18} />
+                Cancel
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleClose}
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  background: '#f0f0f0',
+                  color: 'black', 
+                  border: 'none', 
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer' 
+                }}
+              >
+                Close
+              </Button>
+            )}
+            
             <Button 
-              onClick={handleClose}
+              onClick={handleConfirmDownload}
+              disabled={!isValidUrl || (downloadProgress !== null && downloadProgress < 100)}
               style={{ 
-                padding: '0.5rem 1rem', 
-                background: '#f0f0f0',
-                color: 'black', 
-                border: 'none', 
+                padding: '0.5rem 1rem',
+                border: 'none',
+                color: 'white', 
                 borderRadius: '0.5rem',
-                cursor: 'pointer' 
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer'
               }}
             >
-              Close
+              <Download size={18} />
+              Confirm
             </Button>
-          )}
-          {downloadProgress !== 100 && (
-          <Button 
-            onClick={handleConfirmDownload}
-            disabled={!isValidUrl || (downloadProgress !== null && downloadProgress < 100)}
-            style={{ 
-              padding: '0.5rem 1rem',
-              border: 'none',
-              color: 'white', 
-              borderRadius: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Download size={18} />
-            Confirm
-          </Button>
-          )}
+          </>
+        )}
         </div>
       </OverlayContainer>
     </OverlayBackground>
