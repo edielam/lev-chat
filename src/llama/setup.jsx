@@ -24,7 +24,12 @@ const OverlayContainer = styled.div`
   width: 500px;
   max-width: 90%;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+
+  word-wrap: break-word; 
+  word-break: break-word; 
+  overflow-wrap: break-word;
 `;
+
 
 const ProgressContainer = styled.div`
   width: 100%;
@@ -139,7 +144,7 @@ const SetupDownloadOverlay = ({
 
         await invoke('download_model', { 
           url, 
-          modelType: modelType === 'language' ? 'languageModel' : 'embeddingModel' 
+          modelType: modelType 
         });
 
       } catch (error) {
@@ -182,7 +187,7 @@ const SetupDownloadOverlay = ({
     <OverlayBackground>
       <OverlayContainer>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Download {modelType === 'language' ? 'Language' : 'Embedding'} Model</h2>
+          <h2>Download {modelType} Model</h2>
           <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
             <X size={24} />
           </button>

@@ -294,11 +294,8 @@ const RAGSidebar = ({onToggle}) => {
       const cancelDownload = () => {
         setActiveDownloadType(null);
       };
-    const handleInstallLlamaCpp = async (type) => {
-        // const url = type === 'language' ? modelUrls.languageModel : modelUrls.embeddingModel;
-        // setIsInstalling(true);
-        // setInstallError(null);
-        setActiveSetupType(type);
+      const handleInstallLlamaCpp = async (type) => {
+        setActiveSetupType(type); // This will be 'Windows' or 'Linux'
     };
     
 
@@ -566,8 +563,8 @@ const RAGSidebar = ({onToggle}) => {
             isOpen={!!activeSetupType}
             onClose={cancelInstallation}
             modelType={activeSetupType}
-            url={setupUrls[activeSetupType === 'os' ? 'Windows' : 'Linux']}
-     />
+            url={setupUrls[activeSetupType]}
+        />
         </>
     );
     };
