@@ -357,7 +357,7 @@ const RAGSidebar = ({onToggle}) => {
                         onClick={handleInstallLlamaCpp}
                         disabled={isInstalling}
                     >
-                        {isInstalling ? 'Installing...' : 'Install llama.cpp'}
+                        {isInstalling ? 'Setting up llama.cpp...' : 'Setup llama.cpp'}
                     </InstallButton>
                     
                     {installError && (

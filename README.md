@@ -8,11 +8,9 @@ LevChat is a lightweight desktop application that allows you to interact with La
 
 ![LevChat Demo](./levChat.gif)
 
-> **Note**: The setup script downloads quantized versions of the LLaMA 3.2 3B model and bge-large-en-v1.5 for embedding. You can modify the script to download models of your preference. Browse and download alternative models from [Hugging Face](https://huggingface.co/models?search=gguf).
-
 ## Download
 
-Download the latest version of LevChat for your platform from the [release page](https://github.com/edielam/lev-chat/releases/tag/v0.0.1).
+Download the latest version of LevChat for your platform from the [release page](https://github.com/edielam/lev-chat/releases/tag/v0.0.2).
 
 Available builds:
 - Windows (x64)
@@ -21,59 +19,14 @@ Available builds:
 
 ## Prerequisites
 
-You need to install `llama.cpp` before using LevChat. Choose one of the following installation methods:
+`llama.cpp` is required for LevChat. You can easily download and configure the appropriate `llama.cpp` executables for your system via the UI. If you prefer to do it your or the setup encounters issues, manually install/download the correct executable for your platform from the [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases) and place it in your LevChat `setup` folder.
 
-### Windows Users
-1. Follow this easy [YouTube tutorial](https://www.youtube.com/watch?v=r-05yuXTEPE) installation guide. PS: I don't know this creator nor was I paid to promote his content.
-2. For setup, see the Windows Setup section below
-
-### Linux and Mac Users
-```bash
-brew install llama.cpp
-```
+Supported platforms include Windows, macOS, and Linux. 
 
 For detailed installation instructions, refer to the official llama.cpp documentation:
 - [Build Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md)
 - [Docker Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/docker.md)
 - [Installation Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/install.md)
-
-## Setup
-
-### Linux and MacOS
-Simply run the provided `setup_levchat.sh` script:
-```bash
-chmod +x setup_levchat.sh
-./setup_levchat.sh
-```
-
-The script will download specified model into required folder.
-
-### Windows Setup
-Since Windows doesn't natively support Bash scripts, download the model manually:
-
-1. Download [Llama-3.2-3B-Instruct-GGUF](https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf)
-2. Save it as `Llama-3.2-3B-Instruct-Q6_K.gguf` in:
-   ```
-   C:\Users\YourUsername\Documents\LevChat\model\
-   ```
-3. Download [bge-large-en-v1.5-f16.gguf](https://huggingface.co/CompendiumLabs/bge-large-en-v1.5-gguf/resolve/main/bge-large-en-v1.5-f16.gguf)
-2. Save it as `bge-large-en-v1.5-f16.gguf` in:
-   ```
-   C:\Users\YourUsername\Documents\LevChat\em_model\
-   ```
-
-Alternatively, you can use Windows Subsystem for Linux (WSL) or Git Bash to run the setup script on Windows.
-
-### Directory Structure
-After setup, you will have:
-```
-Documents/LevChat/
-├── data/
-└── model/
-    └── Llama-3.2-3B-Instruct-Q6_K.gguf
-└── em_model/
-    └── bge-large-en-v1.5-f16.gguf
-```
 
 ## Usage
 

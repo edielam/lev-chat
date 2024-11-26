@@ -105,7 +105,7 @@ const LlamaCppInstallProgress = ({
     filename: '',
     is_downloading: false
   });
-  const [statusMessage, setStatusMessage] = useState('Preparing installation...');
+  const [statusMessage, setStatusMessage] = useState('Preparing setup...');
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -115,9 +115,9 @@ const LlamaCppInstallProgress = ({
       try {
         await invoke('install_llama_cpp_command');
       } catch (error) {
-        console.error('Installation initiation error:', error);
+        console.error('Setup initiation error:', error);
         setError(error.toString());
-        setStatusMessage('Installation failed to start');
+        setStatusMessage('Setup failed to start');
       }
     };
 
@@ -131,12 +131,12 @@ const LlamaCppInstallProgress = ({
         // Update status and handle completion
         if (currentProgress.is_downloading) {
           if (currentProgress.percentage === 0) {
-            setStatusMessage('Preparing installation...');
+            setStatusMessage('Preparing setup...');
           } else {
-            setStatusMessage(`Installing ${currentProgress.filename}`);
+            setStatusMessage(`Downloading ${currentProgress.filename}`);
           }
         } else if (currentProgress.percentage === 100) {
-          setStatusMessage('Installation complete!');
+          setStatusMessage('Setup complete!');
           onComplete && onComplete();
           clearInterval(progressInterval);
         }
