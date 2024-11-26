@@ -40,8 +40,8 @@ const ProgressBar = styled.div`
   height: 100%;
   background-color: ${props => 
     props.error ? '#ff4d4d' : 
-    props.progress === 100 ? props => props.theme.progressbarThumb : 
-    props => props.theme.progressbarTrack};
+    props.progress === 100 ? '#275c91' : 
+    props.theme.progressbarTrack};
   transition: width 0.5s ease;
 `;
 
@@ -66,6 +66,40 @@ const ModelDownloadOverlay = ({
     setIsValidUrl(isValid);
     setLocalError(isValid ? null : 'Invalid model file type. Must end with .gguf');
   }, [url]);
+
+  useEffect(() => {
+    const checkInitialDownloadProgress = async () => {
+      if (isOpen) {
+        try {
+          const progress = await invoke('get_download_progress');
+          
+          if (progress.is_downloading) {
+            setIsDownloading(true);
+            setDownloadProgress(progress.percentage || 0);
+            
+            // If download is in progress, always start tracking progress
+            startDownloadProgress();
+          } else {
+            // Reset states if no download is in progress
+            setDownloadProgress(null);
+            setIsDownloading(false);
+            setDownloadError(null);
+          }
+        } catch (error) {
+          console.error('Error checking initial download progress:', error);
+          // Reset all states in case of error
+          setDownloadProgress(null);
+          setIsDownloading(false);
+          setDownloadError(error instanceof Error ? error.message : String(error));
+        }
+      }
+    };
+  
+    // If modal is open, immediately check download status
+    if (isOpen) {
+      checkInitialDownloadProgress();
+    }
+  }, [isOpen]); // Dependency on isOpen ensures this runs when modal opens
 
   const startDownloadProgress = () => {
     progressIntervalRef.current = setInterval(async () => {
@@ -229,7 +263,7 @@ const ModelDownloadOverlay = ({
               onClick={handleClose}
               style={{ 
                 padding: '0.5rem 1rem', 
-                background: '#f0f0f0', 
+                // background: '#f0f0f0', 
                 border: 'none', 
                 borderRadius: '0.5rem',
                 cursor: 'pointer' 

@@ -16,7 +16,7 @@ export const darkTheme = {
   inputBackground: '#1E1E1E',
   scrollbarTrack: '#121212',
   scrollbarThumb: '#2e1506',
-  progressbarTrack: '#7a4c36',
+  progressbarTrack: '#275c91',
   progressbarThumb: '#f7e7df',
 };
 

@@ -2,8 +2,6 @@ import React, { useState,useEffect } from 'react';
 import styled from 'styled-components';
 import { Download, Database, FileText, MenuIcon, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/tauri';
-import { documentDir } from '@tauri-apps/api/path';
-import { writeBinaryFile } from '@tauri-apps/api/fs';
 import ModelDownloadOverlay from './modelDownload';
 
 const SidebarContainer = styled.div`
@@ -209,13 +207,6 @@ const StatusMessage = styled.div`
   margin-top: 0.5rem;
 `;
 
-
-const ErrorMessage = styled.div`
-color: red;
-font-size: 0.8rem;
-margin-top: 0.5rem;
-`;
-
 const RAGSidebar = ({onToggle}) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedModel, setSelectedModel] = useState('');
@@ -235,15 +226,6 @@ const RAGSidebar = ({onToggle}) => {
     const [modelUrls, setModelUrls] = useState({
     languageModel: 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q6_K.gguf',
     embeddingModel: 'https://huggingface.co/CompendiumLabs/bge-large-en-v1.5-gguf/resolve/main/bge-large-en-v1.5-f16.gguf'
-    });
-    const [downloadProgress, setDownloadProgress] = useState({
-        languageModel: 0,
-        embeddingModel: 0
-    });
-
-    const [downloadErrors, setDownloadErrors] = useState({
-        languageModel: null,
-        embeddingModel: null
     });
     const [activeDownloadType, setActiveDownloadType] = useState(null);
 
@@ -488,21 +470,10 @@ const RAGSidebar = ({onToggle}) => {
                             e.stopPropagation(); // Stop event from bubbling
                             console.log('Download button clicked for language model'); // Debug log
                             handleModelDownload('language');
-                        }}
-                        disabled={downloadProgress.languageModel > 0 && downloadProgress.languageModel < 100}
-                        >
+                        }}>
                         <Download size={18} />
                         </DownloadModelButton>
                     </ModelDownloadContainer>
-                    {downloadProgress.languageModel > 0 && (
-                        <ProgressBar 
-                        progress={downloadProgress.languageModel} 
-                        error={downloadErrors.languageModel}
-                        />
-                    )}
-                    {downloadErrors.languageModel && (
-                        <ErrorMessage>{downloadErrors.languageModel}</ErrorMessage>
-                    )}
                 </ModelDownloadGroup>
 
                 <ModelDownloadGroup>
@@ -519,21 +490,10 @@ const RAGSidebar = ({onToggle}) => {
                             e.stopPropagation(); // Stop event from bubbling
                             console.log('Download button clicked for embedding model'); // Debug log
                             handleModelDownload('embedding');
-                        }}
-                        disabled={downloadProgress.embeddingModel > 0 && downloadProgress.embeddingModel < 100}
-                        >
+                        }}>
                         <Download size={18} />
                         </DownloadModelButton>
                     </ModelDownloadContainer>
-                    {downloadProgress.embeddingModel > 0 && (
-                        <ProgressBar 
-                        progress={downloadProgress.embeddingModel} 
-                        error={downloadErrors.embeddingModel}
-                        />
-                    )}
-                    {downloadErrors.embeddingModel && (
-                        <ErrorMessage>{downloadErrors.embeddingModel}</ErrorMessage>
-                    )}
                 </ModelDownloadGroup>
             </ModelDownloadSection>
             )}
@@ -543,10 +503,7 @@ const RAGSidebar = ({onToggle}) => {
             onClose={cancelDownload}
             modelType={activeDownloadType}
             url={modelUrls[activeDownloadType === 'language' ? 'languageModel' : 'embeddingModel']}
-            // onConfirmDownload={confirmModelDownload}
-            // downloadProgress={downloadProgress[activeDownloadType === 'language' ? 'languageModel' : 'embeddingModel']}
-            // downloadError={downloadErrors[activeDownloadType === 'language' ? 'languageModel' : 'embeddingModel']}
-            />
+     />
         </SidebarContainer>
         </>
     );
