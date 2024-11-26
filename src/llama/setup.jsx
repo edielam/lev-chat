@@ -103,7 +103,11 @@ const LlamaCppInstallProgress = ({
     downloaded_size: 0,
     total_size: 0,
     filename: '',
-    is_downloading: false
+    is_downloading: false,
+    is_unzipping: false,
+    unzip_total_files: 0,
+    unzip_current_progress: 0,
+    unzip_current_file: null
   });
   const [statusMessage, setStatusMessage] = useState('Preparing setup...');
   const [error, setError] = useState(null);
@@ -128,13 +132,20 @@ const LlamaCppInstallProgress = ({
         // Update progress state
         setProgress(currentProgress);
 
-        // Update status and handle completion
+        // Update status based on current stage
         if (currentProgress.is_downloading) {
           if (currentProgress.percentage === 0) {
-            setStatusMessage('Preparing setup...');
+            setStatusMessage('Preparing download...');
           } else {
             setStatusMessage(`Downloading ${currentProgress.filename}`);
           }
+        } else if (currentProgress.is_unzipping) {
+          // Calculate unzip progress percentage
+          const unzipPercentage = currentProgress.unzip_total_files > 0 
+            ? Math.round((currentProgress.unzip_current_progress / currentProgress.unzip_total_files) * 100)
+            : 0;
+          
+          setStatusMessage(`Extracting: ${currentProgress.unzip_current_file || 'Preparing...'}`);
         } else if (currentProgress.percentage === 100) {
           setStatusMessage('Setup complete!');
           onComplete && onComplete();
@@ -179,6 +190,13 @@ const LlamaCppInstallProgress = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Determine which progress to show
+  const displayPercentage = progress.is_unzipping 
+    ? (progress.unzip_total_files > 0 
+      ? Math.round((progress.unzip_current_progress / progress.unzip_total_files) * 100)
+      : 0)
+    : progress.percentage;
+
   return (
     <ProgressOverlay>
       <ProgressContainer>
@@ -188,15 +206,22 @@ const LlamaCppInstallProgress = ({
         
         <ProgressText>
           <span>{statusMessage}</span>
-          <span>
-            {formatFileSize(progress.downloaded_size)} / 
-            {formatFileSize(progress.total_size || 0)}
-          </span>
+          {progress.is_downloading && (
+            <span>
+              {formatFileSize(progress.downloaded_size)} / 
+              {formatFileSize(progress.total_size || 0)}
+            </span>
+          )}
+          {progress.is_unzipping && (
+            <span>
+              {progress.unzip_current_progress} / {progress.unzip_total_files} files
+            </span>
+          )}
         </ProgressText>
         
         <ProgressBar>
           <ProgressFill 
-            percentage={progress.percentage || 0} 
+            percentage={displayPercentage || 0} 
           />
         </ProgressBar>
         
