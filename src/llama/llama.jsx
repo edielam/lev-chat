@@ -197,22 +197,21 @@ const LamaChat = () => {
               rows={1}
             />
             <lam.ButtonGroup>
-              <lam.Button 
-                onClick={isExecuting ? handleStop : handleSubmit} 
-                disabled={!input.trim()}
-              >
+              
                 {isExecuting ? (
                   <>
-                    <Square size={10} />
-                    Stop
+                   <lam.Button onClick={handleStop} title="Stop generation (Ctrl+C)">
+                      <Square size={20} />
+                    </lam.Button>
                   </>
                 ) : (
                   <>
-                    <Send size={20} />
-                    Send
+                    <lam.Button onClick={handleSubmit} disabled={isExecuting || !input.trim()}>
+                       <Send size={20} />
+                    </lam.Button>
                   </>
                 )}
-              </lam.Button>
+
           </lam.ButtonGroup>
           </lam.InputWrapper>
         </lam.InputContainer>

@@ -282,11 +282,11 @@ async fn handle_client(stream: TcpStream) {
                                             break;
                                         }
                                     }
-                                    let ctrl_c_bytes = vec![3];
-                                    if tx_clone.send(Message::Binary(ctrl_c_bytes)).await.is_err() {
-                                        error!("Failed to send Ctrl+C signal - channel closed");
-                                        break;
-                                    }
+                                    // let ctrl_c_bytes = vec![3];
+                                    // if tx_clone.send(Message::Binary(ctrl_c_bytes)).await.is_err() {
+                                    //     error!("Failed to send Ctrl+C signal - channel closed");
+                                    //     break;
+                                    // }
                                     is_capturing = false;
                                     accumulated.clear();
                                     // break;
