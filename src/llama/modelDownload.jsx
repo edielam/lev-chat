@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { X, Download, AlertTriangle} from 'lucide-react';
-
+import { X, Download, AlertTriangle, XIcon } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/tauri';
+import { lightTheme, Button } from './lamastyles';
 
 const OverlayBackground = styled.div`
   position: fixed;
@@ -17,7 +18,7 @@ const OverlayBackground = styled.div`
 `;
 
 const OverlayContainer = styled.div`
-  background-color: ${props => props.theme.background};
+  background-color: ${props => props.theme.secondary};
   border-radius: 1rem;
   padding: 2rem;
   width: 500px;
@@ -25,44 +26,13 @@ const OverlayContainer = styled.div`
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 `;
 
-const OverlayHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  color: ${props => props.theme.textMuted};
-  cursor: pointer;
-  transition: color 0.2s;
-
-  &:hover {
-    color: ${props => props.theme.textStrong};
-  }
-`;
-
-const DownloadDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const DetailRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 const ProgressContainer = styled.div`
   width: 100%;
-  background-color: ${props => props.theme.border};
+  background-color: #e0e0e0;
   border-radius: 0.5rem;
   overflow: hidden;
-  height: 20px;
+  height: 10px;
+  margin-top: 1rem;
 `;
 
 const ProgressBar = styled.div`
@@ -70,75 +40,106 @@ const ProgressBar = styled.div`
   height: 100%;
   background-color: ${props => 
     props.error ? '#ff4d4d' : 
-    props.complete ? '#4caf50' : 
-    props.theme.accent};
+    props.progress === 100 ? props => props.theme.progressbarThumb : 
+    props => props.theme.progressbarTrack};
   transition: width 0.5s ease;
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-`;
-
-const Button = styled.button`
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background-color 0.2s;
-
-  &.cancel {
-    background-color: ${props => props.theme.border};
-    color: ${props => props.theme.textMuted};
-
-    &:hover {
-      background-color: ${props => props.theme.borderHover};
-    }
-  }
-
-  &.confirm {
-    background-color: ${props => props.theme.accent};
-    color: white;
-
-    &:hover {
-      background-color: ${props => props.theme.accentHover};
-    }
-
-    &:disabled {
-      background-color: ${props => props.theme.border};
-      cursor: not-allowed;
-    }
-  }
 `;
 
 const ModelDownloadOverlay = ({ 
   isOpen, 
   onClose, 
   modelType, 
-  url, 
-  onConfirmDownload 
+  url 
 }) => {
-  const [isValidUrl, setIsValidUrl] = useState(false);
-  const [error, setError] = useState(null);
+    const [isValidUrl, setIsValidUrl] = useState(false);
+    const [localError, setLocalError] = useState(null);
+    const [downloadProgress, setDownloadProgress] = useState(null);
+    const [downloadError, setDownloadError] = useState(null);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const progressIntervalRef = useRef(null);
 
   useEffect(() => {
-    // Validate URL ends with .gguf or .gguf?download=true
     const isValid = url && (
       url.toLowerCase().endsWith('.gguf') || 
       url.toLowerCase().includes('.gguf?download=true')
     );
     setIsValidUrl(isValid);
-    setError(isValid ? null : 'Invalid model file type. Must end with .gguf');
+    setLocalError(isValid ? null : 'Invalid model file type. Must end with .gguf');
   }, [url]);
 
-  const handleConfirmDownload = () => {
-    if (isValidUrl) {
-      onConfirmDownload(url, modelType);
+  const startDownloadProgress = () => {
+    progressIntervalRef.current = setInterval(async () => {
+      try {
+        const progress = await invoke('get_download_progress');
+        
+        if (progress.percentage !== undefined) {
+          setDownloadProgress(progress.percentage);
+          
+          if (progress.percentage === 100 || !progress.is_downloading) {
+            stopProgressTracking();
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching download progress:', error);
+        stopProgressTracking();
+      }
+    }, 2000);
+  };
+
+  const stopProgressTracking = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
     }
+  };
+
+  const handleConfirmDownload = async () => {
+    if (isValidUrl) {
+      try {
+
+        setDownloadError(null);
+        setDownloadProgress(0);
+        setIsDownloading(true);
+
+        startDownloadProgress();
+
+        await invoke('download_model', { 
+          url, 
+          modelType: modelType === 'language' ? 'languageModel' : 'embeddingModel' 
+        });
+
+      } catch (error) {
+
+        stopProgressTracking();
+        setDownloadError(error instanceof Error ? error.message : String(error));
+        setDownloadProgress(null);
+        setIsDownloading(false);
+      }
+    }
+  };
+
+  const handleCancelDownload = async () => {
+    try {
+      await invoke('cancel_download');
+      stopProgressTracking();
+      setDownloadProgress(null);
+      setIsDownloading(false);
+      onClose();
+    } catch (error) {
+      console.error('Error cancelling download:', error);
+    }
+  };
+
+  const handleClose = () => {
+
+    stopProgressTracking();
+    
+
+    setDownloadProgress(null);
+    setDownloadError(null);
+    setLocalError(null);
+    setIsDownloading(false);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -146,47 +147,117 @@ const ModelDownloadOverlay = ({
   return (
     <OverlayBackground>
       <OverlayContainer>
-        <OverlayHeader>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2>Download {modelType === 'language' ? 'Language' : 'Embedding'} Model</h2>
-          <CloseButton onClick={onClose}>
+          <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
             <X size={24} />
-          </CloseButton>
-        </OverlayHeader>
+          </button>
+        </div>
 
-        <DownloadDetails>
-          <DetailRow>
-            <span>Model Type:</span>
-            <strong>{modelType === 'language' ? 'Language Model' : 'Embedding Model'}</strong>
-          </DetailRow>
-          <DetailRow>
-            <span>Download URL:</span>
-            <span>{url}</span>
-          </DetailRow>
-        </DownloadDetails>
+        <div>
+          <p><strong>Download URL:</strong> {url}</p>
+          
+          {localError && (
+            <div style={{ color: 'red', display: 'flex', alignItems: 'center', marginTop: '0.5rem' }}>
+              <AlertTriangle color="red" size={20} style={{ marginRight: '0.5rem' }} />
+              {localError}
+            </div>
+          )}
 
-        {error && (
-          <DetailRow>
-            <AlertTriangle color="red" size={20} />
-            <span style={{ color: 'red', marginLeft: '0.5rem' }}>{error}</span>
-          </DetailRow>
-        )}
+          {downloadError && (
+            <div style={{ color: 'red', display: 'flex', alignItems: 'center', marginTop: '0.5rem' }}>
+              <AlertTriangle color="red" size={20} style={{ marginRight: '0.5rem' }} />
+              {downloadError}
+            </div>
+          )}
 
-        <ActionButtons>
+          <ProgressContainer>
+            <ProgressBar 
+              progress={downloadProgress || 0} 
+              error={!!downloadError}
+            />
+          </ProgressContainer>
+
+          <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+            {downloadProgress !== null && `${downloadProgress}%`}
+          </div>
+        </div>
+
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          marginTop: '1rem', 
+          gap: '1rem' 
+        }}>
+        {downloadProgress === 100 ? (
+            <Button
+            onClick={handleClose}
+            style={{ 
+                padding: '0.5rem 1rem', 
+                // background: '#4caf50', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                width: '100%'
+            }}
+            >
+            Done
+            </Button>
+        ) : isDownloading ? (
+            <Button
+              onClick={handleCancelDownload}
+              style={{ 
+                padding: '0.5rem 1rem', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer' 
+              }}
+            >
+              <XIcon size={18} />
+              Cancel
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleClose}
+              style={{ 
+                padding: '0.5rem 1rem', 
+                background: '#f0f0f0', 
+                border: 'none', 
+                borderRadius: '0.5rem',
+                cursor: 'pointer' 
+              }}
+            >
+              Close
+            </Button>
+          )}
+          {downloadProgress !== 100 && (
           <Button 
-            className="cancel" 
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button 
-            className="confirm" 
             onClick={handleConfirmDownload}
-            disabled={!isValidUrl}
+            disabled={!isValidUrl || (downloadProgress !== null && downloadProgress < 100)}
+            style={{ 
+              padding: '0.5rem 1rem',
+              border: 'none',
+              color: 'white', 
+              borderRadius: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer'
+            }}
           >
             <Download size={18} />
-            Confirm Download
+            Confirm
           </Button>
-        </ActionButtons>
+          )}
+        </div>
       </OverlayContainer>
     </OverlayBackground>
   );

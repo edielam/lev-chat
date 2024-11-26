@@ -6,7 +6,12 @@ use std::path::PathBuf;
 use std::process::Command;
 use reqwest;
 use sysinfo::System;
+use reqwest::Client;
+use std::sync::{Arc, Mutex};
+use futures::StreamExt;
+use tokio::sync::mpsc;
 use tauri::api::path;
+use lazy_static::lazy_static;
 
 const GITHUB_RELEASES_URL: &str = "https://github.com/ggerganov/llama.cpp/releases/download";
 const LATEST_VERSION: &str = "b4164";
@@ -184,9 +189,25 @@ pub fn install_llama_cpp() -> Result<(), Box<dyn std::error::Error>> {
 pub fn install_llama_cpp_command() -> Result<(), String> {
     install_llama_cpp().map_err(|e| e.to_string())
 }
+lazy_static! {
+    static ref DOWNLOAD_STATE: Arc<Mutex<DownloadState>> = Arc::new(Mutex::new(DownloadState::default()));
+}
+
+#[derive(Default)]
+struct DownloadState {
+    total_size: Option<u64>,
+    downloaded_size: u64,
+    is_downloading: bool,
+    filename: Option<String>,
+    cancel_tx: Option<mpsc::Sender<()>>,
+}
 
 #[tauri::command]
-pub async fn download_model(url: String, model_type: String) -> Result<String, String> {
+pub async fn download_model(
+    url: String, 
+    model_type: String
+) -> Result<String, String> {
+    // Prepare download path
     let doc_dir = path::document_dir()
         .ok_or_else(|| "Failed to get documents directory".to_string())?;
  
@@ -198,29 +219,126 @@ pub async fn download_model(url: String, model_type: String) -> Result<String, S
     };
 
     let filename = url.split('/').last()
-        .ok_or_else(|| "Could not extract filename from URL".to_string())?;
-    let file_path = download_path.join(filename);
+        .ok_or_else(|| "Could not extract filename from URL".to_string())?
+        .to_string();
+    let file_path = download_path.join(&filename);
 
     if file_path.exists() {
         return Err(format!("Model {} already exists", filename));
     }
-    let response = reqwest::get(&url)
-        .await
-        .map_err(|e| format!("Failed to download: {}", e))?;
 
-    let bytes = response.bytes()
-        .await
-        .map_err(|e| format!("Failed to read response: {}", e))?;
+    // Create channels for cancellation
+    let (cancel_tx, mut cancel_rx) = mpsc::channel(1);
 
+    // Update global state
+    {
+        let mut state = DOWNLOAD_STATE.lock().unwrap();
+        state.is_downloading = true;
+        state.filename = Some(filename.clone());
+        state.downloaded_size = 0;
+        state.cancel_tx = Some(cancel_tx);
+    }
+
+    // Prepare download
+    let client = Client::new();
+    let response = client.get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to initiate download: {}", e))?;
+
+    let total_size = response.content_length()
+        .ok_or_else(|| "Failed to get content length".to_string())?;
+
+    // Update total size in global state
+    {
+        let mut state = DOWNLOAD_STATE.lock().unwrap();
+        state.total_size = Some(total_size);
+    }
+
+    // Prepare file for writing
     fs::create_dir_all(&download_path)
         .map_err(|e| format!("Failed to create directory: {}", e))?;
 
     let mut file = File::create(&file_path)
         .map_err(|e| format!("Failed to create file: {}", e))?;
-    file.write_all(&bytes)
-        .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    // Stream download
+    let mut stream = response.bytes_stream();
+
+    loop {
+        tokio::select! {
+            Some(item) = stream.next() => {
+                let chunk = item
+                    .map_err(|e| format!("Error downloading chunk: {}", e))?;
+                
+                // Write chunk to file
+                file.write_all(&chunk)
+                    .map_err(|e| format!("Failed to write chunk: {}", e))?;
+
+                // Update downloaded size
+                {
+                    let mut state = DOWNLOAD_STATE.lock().unwrap();
+                    state.downloaded_size += chunk.len() as u64;
+                }
+            }
+            _ = cancel_rx.recv() => {
+                // Download cancelled
+                {
+                    let mut state = DOWNLOAD_STATE.lock().unwrap();
+                    state.is_downloading = false;
+                }
+                // Optional: Remove partial download
+                std::fs::remove_file(&file_path).ok();
+                return Err("Download cancelled".to_string());
+            }
+            else => break
+        }
+    }
+
+    // Mark download as complete
+    {
+        let mut state = DOWNLOAD_STATE.lock().unwrap();
+        state.is_downloading = false;
+        state.downloaded_size = total_size;
+    }
 
     Ok(format!("Model {} downloaded successfully", filename))
+}
+
+#[tauri::command]
+pub fn get_download_progress() -> Result<DownloadProgress, String> {
+    let state = DOWNLOAD_STATE.lock().unwrap();
+    
+    Ok(DownloadProgress {
+        total_size: state.total_size,
+        downloaded_size: state.downloaded_size,
+        is_downloading: state.is_downloading,
+        filename: state.filename.clone(),
+        percentage: state.total_size
+            .map(|total| (state.downloaded_size as f64 / total as f64 * 100.0).round() as u8)
+    })
+}
+
+#[tauri::command]
+pub fn cancel_download() -> Result<(), String> {
+    let mut state = DOWNLOAD_STATE.lock().unwrap();
+    
+    if let Some(cancel_tx) = state.cancel_tx.take() {
+        cancel_tx.try_send(()).map_err(|_| "Failed to send cancellation signal".to_string())?;
+        state.is_downloading = false;
+        Ok(())
+    } else {
+        Err("No active download to cancel".to_string())
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct DownloadProgress {
+    total_size: Option<u64>,
+    downloaded_size: u64,
+    is_downloading: bool,
+    filename: Option<String>,
+    percentage: Option<u8>
 }
 
 #[tauri::command]

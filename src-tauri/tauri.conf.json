@@ -91,7 +91,7 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 1200,
+        "height": 800,
         "resizable": true,
         "title": "LevChat",
         "width": 700

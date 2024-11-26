@@ -16,6 +16,8 @@ export const darkTheme = {
   inputBackground: '#1E1E1E',
   scrollbarTrack: '#121212',
   scrollbarThumb: '#2e1506',
+  progressbarTrack: '#7a4c36',
+  progressbarThumb: '#f7e7df',
 };
 
 export const lightTheme = {
@@ -34,6 +36,8 @@ export const lightTheme = {
   inputBackground: '#FFFFFF',
   scrollbarTrack: '#E0E0E0',
   scrollbarThumb: '#a3e6df',
+  progressbarTrack: '#2a7f8c',
+  progressbarThumb: '#dff5f7',
 };
 
 export const globalStyles = css`

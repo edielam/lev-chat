@@ -4,7 +4,7 @@ import { Download, Database, FileText, MenuIcon, CheckCircle2, AlertTriangle, Ch
 import { invoke } from '@tauri-apps/api/tauri';
 import { documentDir } from '@tauri-apps/api/path';
 import { writeBinaryFile } from '@tauri-apps/api/fs';
-// import path from '@tauri-apps/api/path';
+import ModelDownloadOverlay from './modelDownload';
 
 const SidebarContainer = styled.div`
   position: fixed;
@@ -209,28 +209,6 @@ const StatusMessage = styled.div`
   margin-top: 0.5rem;
 `;
 
-const ProgressBar = styled.div`
-  width: ${props => props.$progress}%;
-  height: 4px;
-  background-color: blue;
-  transition: width 0.5s ease;
-`;
-const ModelItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background-color: ${props => props.$selected 
-    ? props.theme.messageBackground 
-    : 'transparent'};
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: ${props => props.theme.messageBackground}80;
-  }
-`;
 
 const ErrorMessage = styled.div`
 color: red;
@@ -267,6 +245,7 @@ const RAGSidebar = ({onToggle}) => {
         languageModel: null,
         embeddingModel: null
     });
+    const [activeDownloadType, setActiveDownloadType] = useState(null);
 
     useEffect(() => {
         checkLlamaCppInstallation();
@@ -304,76 +283,20 @@ const RAGSidebar = ({onToggle}) => {
     };
     
     const handleModelDownload = async (type) => {
-        const key = type === 'language' ? 'languageModel' : 'embeddingModel';
-        const url = modelUrls[key];
-
-        try {
-        // Reset previous progress and errors
-        setDownloadProgress(prev => ({ ...prev, [key]: 0 }));
-        setDownloadErrors(prev => ({ ...prev, [key]: null }));
-
-        const response = await fetch(url);
+        console.log(`Attempting to download ${type} model`);
+        console.log('Current model URLs:', modelUrls);
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const contentLength = response.headers.get('Content-Length');
-        const total = parseInt(contentLength, 10);
-        let downloaded = 0;
-
-        const reader = response.body.getReader();
-        const chunks = [];
-
-        while (true) {
-            const { done, value } = await reader.read();
-            
-            if (done) break;
-            
-            chunks.push(value);
-            downloaded += value.length;
-            
-            // Calculate and update progress
-            const progress = contentLength 
-            ? Math.round((downloaded / total) * 100) 
-            : 0;
-            
-            setDownloadProgress(prev => ({ ...prev, [key]: progress }));
-        }
-
-        // Combine chunks
-        const blob = new Blob(chunks);
+        const url = type === 'language' ? modelUrls.languageModel : modelUrls.embeddingModel;
         
-        // Get the document directory path
-        const baseDir = await documentDir();
+        console.log(`Selected ${type} model URL:`, url);
         
-        // Determine the save path based on model type
-        const modelDir = type === 'language' 
-            ? await path.join(baseDir, 'LevChat', 'model')
-            : await path.join(baseDir, 'LevChat', 'em_model');
-
-        // Extract filename from URL
-        const filename = url.split('/').pop();
-        const fullPath = await path.join(modelDir, filename);
-
-        // Ensure directory exists (Tauri should handle this)
-        // Write the file
-        await writeBinaryFile(fullPath, await blob.arrayBuffer());
-
-        // Refresh models list after download
-        await fetchModels();
-
-        // Reset progress
-        setDownloadProgress(prev => ({ ...prev, [key]: 100 }));
-
-        } catch (error) {
-        console.error(`Error downloading ${type} model:`, error);
-        setDownloadErrors(prev => ({ 
-            ...prev, 
-            [key]: error.message || 'Download failed' 
-        }));
-        }
-    };
+        setActiveDownloadType(type);
+      };
+    
+      const cancelDownload = () => {
+        setActiveDownloadType(null);
+      };
+    
 
     const toggleSection = (section) => {
         setSectionsOpen(prev => ({
@@ -552,59 +475,78 @@ const RAGSidebar = ({onToggle}) => {
             {sectionsOpen.downloadModels && (
             <ModelDownloadSection>
                 <ModelDownloadGroup>
-                <ModelUrlLabel>Language Model URL (GGUF format)</ModelUrlLabel>
-                <ModelDownloadContainer>
-                    <ModelUrlInput 
-                    placeholder="Enter URL for language model (e.g., Llama, Mistral)"
-                    value={modelUrls.languageModel}
-                    onChange={(e) => handleModelUrlChange('language', e.target.value)}
-                    />
-                    <DownloadModelButton 
-                    onClick={() => handleModelDownload('language')}
-                    disabled={downloadProgress.languageModel > 0 && downloadProgress.languageModel < 100}
-                    >
-                    <Download size={18} />
-                    </DownloadModelButton>
-                </ModelDownloadContainer>
-                {downloadProgress.languageModel > 0 && (
-                    <ProgressBar 
-                    progress={downloadProgress.languageModel} 
-                    error={downloadErrors.languageModel}
-                    />
-                )}
-                {downloadErrors.languageModel && (
-                    <ErrorMessage>{downloadErrors.languageModel}</ErrorMessage>
-                )}
+                    <ModelUrlLabel>Language Model URL (GGUF format)</ModelUrlLabel>
+                    <ModelDownloadContainer>
+                        <ModelUrlInput 
+                        placeholder="Enter URL for language model (e.g., Llama, Mistral)"
+                        value={modelUrls.languageModel}
+                        onChange={(e) => handleModelUrlChange('language', e.target.value)}
+                        />
+                        <DownloadModelButton 
+                        onClick={(e) => {
+                            e.preventDefault(); // Prevent default form submission
+                            e.stopPropagation(); // Stop event from bubbling
+                            console.log('Download button clicked for language model'); // Debug log
+                            handleModelDownload('language');
+                        }}
+                        disabled={downloadProgress.languageModel > 0 && downloadProgress.languageModel < 100}
+                        >
+                        <Download size={18} />
+                        </DownloadModelButton>
+                    </ModelDownloadContainer>
+                    {downloadProgress.languageModel > 0 && (
+                        <ProgressBar 
+                        progress={downloadProgress.languageModel} 
+                        error={downloadErrors.languageModel}
+                        />
+                    )}
+                    {downloadErrors.languageModel && (
+                        <ErrorMessage>{downloadErrors.languageModel}</ErrorMessage>
+                    )}
                 </ModelDownloadGroup>
 
                 <ModelDownloadGroup>
-                <ModelUrlLabel>Embedding Model URL (GGUF format)</ModelUrlLabel>
-                <ModelDownloadContainer>
-                    <ModelUrlInput 
-                    placeholder="Enter URL for embedding model (e.g., BGE, E5)"
-                    value={modelUrls.embeddingModel}
-                    onChange={(e) => handleModelUrlChange('embedding', e.target.value)}
-                    />
-                    <DownloadModelButton 
-                    onClick={() => handleModelDownload('embedding')}
-                    disabled={downloadProgress.embeddingModel > 0 && downloadProgress.embeddingModel < 100}
-                    >
-                    <Download size={18} />
-                    </DownloadModelButton>
-                </ModelDownloadContainer>
-                {downloadProgress.embeddingModel > 0 && (
-                    <ProgressBar 
-                    progress={downloadProgress.embeddingModel} 
-                    error={downloadErrors.embeddingModel}
-                    />
-                )}
-                {downloadErrors.embeddingModel && (
-                    <ErrorMessage>{downloadErrors.embeddingModel}</ErrorMessage>
-                )}
+                    <ModelUrlLabel>Embedding Model URL (GGUF format)</ModelUrlLabel>
+                    <ModelDownloadContainer>
+                        <ModelUrlInput 
+                        placeholder="Enter URL for embedding model (e.g., BGE, E5)"
+                        value={modelUrls.embeddingModel}
+                        onChange={(e) => handleModelUrlChange('embedding', e.target.value)}
+                        />
+                        <DownloadModelButton 
+                        onClick={(e) => {
+                            e.preventDefault(); // Prevent default form submission
+                            e.stopPropagation(); // Stop event from bubbling
+                            console.log('Download button clicked for embedding model'); // Debug log
+                            handleModelDownload('embedding');
+                        }}
+                        disabled={downloadProgress.embeddingModel > 0 && downloadProgress.embeddingModel < 100}
+                        >
+                        <Download size={18} />
+                        </DownloadModelButton>
+                    </ModelDownloadContainer>
+                    {downloadProgress.embeddingModel > 0 && (
+                        <ProgressBar 
+                        progress={downloadProgress.embeddingModel} 
+                        error={downloadErrors.embeddingModel}
+                        />
+                    )}
+                    {downloadErrors.embeddingModel && (
+                        <ErrorMessage>{downloadErrors.embeddingModel}</ErrorMessage>
+                    )}
                 </ModelDownloadGroup>
             </ModelDownloadSection>
             )}
         </SidebarSection>
+        <ModelDownloadOverlay
+            isOpen={!!activeDownloadType}
+            onClose={cancelDownload}
+            modelType={activeDownloadType}
+            url={modelUrls[activeDownloadType === 'language' ? 'languageModel' : 'embeddingModel']}
+            // onConfirmDownload={confirmModelDownload}
+            // downloadProgress={downloadProgress[activeDownloadType === 'language' ? 'languageModel' : 'embeddingModel']}
+            // downloadError={downloadErrors[activeDownloadType === 'language' ? 'languageModel' : 'embeddingModel']}
+            />
         </SidebarContainer>
         </>
     );
