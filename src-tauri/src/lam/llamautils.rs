@@ -23,6 +23,7 @@ pub fn setup_levchat_dirs() -> Result<(), Box<dyn Error>> {
     let data_dir = levchat_dir.join("data");
     let model_dir = levchat_dir.join("model");
     let embed_model_dir = levchat_dir.join("em_model");
+    let setup_dir = levchat_dir.join("setup");
 
 
     if !levchat_dir.exists() {
@@ -45,6 +46,11 @@ pub fn setup_levchat_dirs() -> Result<(), Box<dyn Error>> {
     if !embed_model_dir.exists() {
         println!("Creating model directory...");
         fs::create_dir_all(&embed_model_dir)
+            .map_err(|e| format!("Failed to create model directory: {}", e))?;
+    }
+    if !setup_dir.exists() {
+        println!("Creating model directory...");
+        fs::create_dir_all(&setup_dir)
             .map_err(|e| format!("Failed to create model directory: {}", e))?;
     }
 
@@ -139,16 +145,54 @@ impl fmt::Display for RAGError {
          let em_model_path = find_gguf_emmodel(workspace_path)
              .map_err(|e| RAGError::ServerError(format!("Failed to find embedding model: {}", e)))?;
  
-         let server_process = Command::new("llama-server")
-             .arg("-m")
-             .arg(em_model_path)
-             .arg("--embeddings")
-             .arg("-c")
-             .arg("512")
-             .arg("-ngl")
-             .arg("99")
-             .spawn()
-             .map_err(|e| RAGError::ServerError(format!("Failed to start llama-server: {}", e)))?;
+            let server_process = if cfg!(target_os = "windows") {
+            Command::new(Path::new(workspace_path).join("setup").join("llama-server.exe"))
+                .arg("-m")
+                .arg(em_model_path)
+                .arg("--embeddings")
+                .arg("-c")
+                .arg("512")
+                .arg("-ngl")
+                .arg("99")
+                .spawn()
+                .map_err(|e| RAGError::ServerError(format!("Failed to start llama-server: {}", e)))?
+        } else if cfg!(target_os = "linux") {
+            let server_path = Path::new(workspace_path).join("setup").join("llama-server");
+            
+            // Ensure executable has correct permissions on Linux
+            match Command::new("chmod")
+                .arg("+x")
+                .arg(&server_path)
+                .output() {
+                Ok(_) => {},
+                Err(e) => {
+                    return Err(RAGError::ServerError(format!("Failed to set executable permissions: {}", e)));
+                }
+            }
+        
+            Command::new(server_path)
+                .arg("-m")
+                .arg(em_model_path)
+                .arg("--embeddings")
+                .arg("-c")
+                .arg("512")
+                .arg("-ngl")
+                .arg("99")
+                .spawn()
+                .map_err(|e| RAGError::ServerError(format!("Failed to start llama-server: {}", e)))?
+        } else {
+            // macOS - direct command as you specified
+            Command::new("llama-server")
+                .arg("-m")
+                .arg(em_model_path)
+                .arg("--embeddings")
+                .arg("-c")
+                .arg("512")
+                .arg("-ngl")
+                .arg("99")
+                .spawn()
+                .map_err(|e| RAGError::ServerError(format!("Failed to start llama-server: {}", e)))?
+        };
          
          let client = reqwest::Client::new();
 

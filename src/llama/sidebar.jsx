@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { Download, Database, FileText, MenuIcon, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/tauri';
 import ModelDownloadOverlay from './modelDownload';
+import LlamaCppInstallProgress from './setup';
 
 const SidebarContainer = styled.div`
   position: fixed;
@@ -216,6 +217,8 @@ const RAGSidebar = ({onToggle}) => {
     const [installError, setInstallError] = useState(null);
     const [languageModels, setLanguageModels] = useState([]);
     const [embeddingModels, setEmbeddingModels] = useState([]);
+    const [activeSetupType, setActiveSetupType] = useState(null);
+
     const [sectionsOpen, setSectionsOpen] = useState({
         prerequisites: true,
         languageModels: false,
@@ -245,16 +248,27 @@ const RAGSidebar = ({onToggle}) => {
     const handleInstallLlamaCpp = async () => {
         setIsInstalling(true);
         setInstallError(null);
-
+        setActiveSetupType('llamacpp');
+    
         try {
-        await invoke('install_llama_cpp_command');
-        await checkLlamaCppInstallation();
+            // The actual installation is now handled in the progress component
+            // Just set the state to trigger the progress modal
         } catch (error) {
-        console.error('Installation error:', error);
-        setInstallError(error.toString());
-        } finally {
-        setIsInstalling(false);
+            console.error('Installation error:', error);
+            setInstallError(error.toString());
+            setActiveSetupType(null);
         }
+    };
+    
+    const cancelInstallation = () => {
+        setActiveSetupType(null);
+        setIsInstalling(false);
+    };
+    
+    const handleInstallComplete = async () => {
+        await checkLlamaCppInstallation();
+        setActiveSetupType(null);
+        setIsInstalling(false);
     };
     const handleModelUrlChange = (type, value) => {
         const key = type === 'language' ? 'languageModel' : 'embeddingModel';
@@ -506,6 +520,12 @@ const RAGSidebar = ({onToggle}) => {
             url={modelUrls[activeDownloadType === 'language' ? 'languageModel' : 'embeddingModel']}
      />
         </SidebarContainer>
+        {activeSetupType === 'llamacpp' && (
+                <LlamaCppInstallProgress
+                    onCancel={cancelInstallation}
+                    onComplete={handleInstallComplete}
+                />
+            )}
         </>
     );
     };

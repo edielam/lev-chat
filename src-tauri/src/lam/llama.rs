@@ -11,6 +11,7 @@ use tokio_tungstenite::accept_async;
 use tokio_tungstenite::tungstenite::Message;
 use uuid::Uuid;
 use log::{error, info};
+use std::process::Command;
 use tauri::api::path;
 use crate::lam::llamautils::RAGProcessor;
 use lazy_static::lazy_static;
@@ -103,7 +104,29 @@ pub fn find_gguf_emmodel(workspace_path: &str) -> Result<PathBuf, String> {
         .map(|entry| entry.path())
         .ok_or_else(|| "No .gguf embedding model found in model directory".to_string())
 }
-async fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str, tx: &mpsc::Sender<Message>) -> Result<CommandBuilder, String> {
+async fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str, tx: &mpsc::Sender<Message>) -> Result<CommandBuilder, String>{
+    // Determine the correct executable path based on the operating system
+    let llama_executable = if cfg!(target_os = "windows") {
+        Path::new(workspace_path).join("setup").join("llama-cli.exe")
+    } else if cfg!(target_os = "linux") {
+        let exe_path = Path::new(workspace_path).join("setup").join("llama-cli");
+        
+        // Ensure executable has correct permissions on Linux
+        match Command::new("chmod")
+            .arg("+x")
+            .arg(&exe_path)
+            .output() {
+            Ok(_) => exe_path,
+            Err(e) => {
+                error!("Failed to make llama-cli executable: {}", e);
+                return Err(format!("Failed to set executable permissions: {}", e));
+            }
+        }
+    } else {
+        // This covers macOS and any other Unix-like systems
+        Path::new(workspace_path).join("setup").join("llama-cli")
+    };
+
     // First, check for language model
     let model_path = match if let Some(model_name) = &config.model_name {
         Ok(Path::new(workspace_path).join("model").join(model_name))
@@ -135,7 +158,7 @@ async fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str, 
                     .await
                     .map_err(|e| format!("Failed to generate RAG prompt: {:?}", e))?;
 
-                // Rest of the RAG processing logic remains the same
+                // Construct command with platform-specific approach
                 let mut cmd = if cfg!(target_os = "windows") {
                     let mut cmd = CommandBuilder::new("cmd");
                     cmd.arg("/C");
@@ -146,14 +169,16 @@ async fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str, 
                     cmd
                 };
 
-                let mut command_str = String::from("llama-cli --color");
+                let mut command_str = if cfg!(target_os = "macos") {
+                    String::from("llama-cli --color")
+                } else {
+                    format!("{} --color", llama_executable.to_string_lossy())
+                };
+
                 command_str.push_str(&format!(" -m \"{}\"", model_path.to_string_lossy()));
-
-                // Add other config options as before...
-
                 command_str.push_str(&format!(" -ngl 99 -p \" {}\"", prompt.replace("\"", "\\\"")));
 
-                info!("Executing LLaMA command: {}", command_str);
+                info!("Executing LLaMA RAG command: {}", command_str);
                 cmd.arg(command_str);
 
                 Ok(cmd)
@@ -168,7 +193,7 @@ async fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str, 
             }
         }
     } else {
-        // Non-RAG prompt processing remains the same
+        // Non-RAG prompt processing
         let mut cmd = if cfg!(target_os = "windows") {
             let mut cmd = CommandBuilder::new("cmd");
             cmd.arg("/C");
@@ -179,11 +204,13 @@ async fn construct_llama_command(config: &LlamaJobConfig, workspace_path: &str, 
             cmd
         };
 
-        let mut command_str = String::from("llama-cli --color");
+        let mut command_str = if cfg!(target_os = "macos") {
+            String::from("llama-cli --color")
+        } else {
+            format!("{} --color", llama_executable.to_string_lossy())
+        };
+
         command_str.push_str(&format!(" -m \"{}\"", model_path.to_string_lossy()));
-
-        // Add other config options as before...
-
         command_str.push_str(&format!(" -ngl 99 -p \" {} {} \nYour response: \"", 
             config.prompt.replace("\"", "\\\""), 
             "PS: (End your response with [done])"));
