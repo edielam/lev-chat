@@ -43,12 +43,14 @@ Upon installation, LevChat automatically creates a folder named `LevChat` in the
 ### Setup  
 
 1. **Settings Sidebar**:  
-   - Open the settings sidebar by clicking the gear icon on the top-right corner of the application.  
+   - Open the settings sidebar by clicking the icon on the top-right corner of the application.  
    - The sidebar has 4 sections:  
      - **llama.cpp Setup**  
      - **Language Models**  
      - **Embedding Models**  
      - **Download**  
+
+![LevChat Settings](./leb.png)  
 
 2. **llama.cpp Detection**:  
    - If `llama.cpp` is detected, it will be displayed in the **llama.cpp Setup** section.  
