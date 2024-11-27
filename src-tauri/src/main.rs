@@ -4,7 +4,7 @@ mod lam;
 mod config;
 
 extern crate serde_json;
-use lam::llama::start_llama_server;
+use lam::llama::*;
 use lam::llamautils::setup_levchat_dirs;
 use lam::settings::check_settings_file;
 use config::config::configure;
@@ -19,6 +19,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = setup_levchat_dirs();
     configure();
     check_settings_file();
+    init_model_state().await;
+
     let context = tauri::generate_context!();
 
     let worker_task = tokio::spawn(async move {
@@ -38,7 +40,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             is_llama_cpp_installed, download_setup,
             get_download_progress, cancel_download, cancel_setup,
             get_setup_progress, reset_setup_progress, unzip_setup,
-            check_llama_cpp_executable_exists
+            check_llama_cpp_executable_exists,
+            get_selected_em_model, set_em_model, get_selected_model,
+            set_model
         ])
         .run(context)
         .expect("error while running tauri application");
