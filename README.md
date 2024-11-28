@@ -6,7 +6,7 @@ A desktop chat application for Local LLM inferencing with optional RAG (Retrieva
 
 LevChat is a lightweight desktop application that allows you to interact with Large Language Models (LLMs) locally on your machine. It supports standard chat functionality and RAG mode for context-aware conversations using your PDF documents.  
 
-![LevChat Demo](./levChat.gif)  
+![LevChat Demo](./levChat2.gif)  
 
 ## Download  
 
