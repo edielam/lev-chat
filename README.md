@@ -17,21 +17,6 @@ Available builds:
 - **Linux (AMD64)**  
 - **macOS (Apple Silicon)**  
 
-## Prerequisites  
-
-`llama.cpp` is required for LevChat. You can easily download and configure the appropriate `llama.cpp` executables for your system via the UI. For Mac users, simply run `brew install llama.cpp`. 
-
-For manual setup:  
-- Download the correct executable for your platform from the [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases).  
-- Place the executable in the `setup` folder located within the `LevChat` directory in your Documents folder.  
-
-Supported platforms include Windows, macOS, and Linux.  
-
-Refer to the official llama.cpp documentation for detailed instructions:  
-- [Build Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md)  
-- [Docker Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/docker.md)  
-- [Installation Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/install.md)  
-
 ## Usage  
 
 Upon installation, LevChat automatically creates a folder named `LevChat` in the Documents directory. This folder contains:  
@@ -75,12 +60,29 @@ Upon installation, LevChat automatically creates a folder named `LevChat` in the
 
 1. Place context PDF documents in the `data` folder.  
 2. Start your prompt with **"RAG-"** to activate RAG mode.  
-3. LevChat will now use the content of the PDF documents to enhance its responses.  
+3. LevChat will now use the content of the PDF documents to enhance its responses. 
+ 
 
 ### Additional Features  
 
 - **Stop Generation**:  
   - Use the stop button next to the send button to interrupt model generation, particularly helpful during looping responses with llama.cpp.  
+
+## Prerequisites  
+
+`llama.cpp` is required for LevChat. You can easily download and configure the appropriate `llama.cpp` executables for your system via the UI. For Mac users, simply run `brew install llama.cpp`. 
+
+For manual setup:  
+- Download the correct executable for your platform from the [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases).  
+- Place the executable in the `setup` folder located within the `LevChat` directory in your Documents folder.  
+
+Supported platforms include Windows, macOS, and Linux.  
+
+Refer to the official llama.cpp documentation for detailed instructions:  
+- [Build Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md)  
+- [Docker Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/docker.md)  
+- [Installation Guide](https://github.com/ggerganov/llama.cpp/blob/master/docs/install.md)  
+
 
 ## License  
 
