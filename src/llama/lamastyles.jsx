@@ -98,7 +98,7 @@ export const ChatContainer = styled.div`
 export const MessageWrapper = styled.div`
   flex: 1;
   max-width: 80%;
-  margin-left: 15rem;
+  margin-left: 10rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;

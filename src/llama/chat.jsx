@@ -75,7 +75,7 @@ const ChatItem = styled.div`
   transition: background-color 0.2s ease;
   
   &:hover {
-    background-color: ${props => props.theme.messageBackground};
+    background-color: ${props => props.theme.chatBar};
   }
 
   ${props => props.isActive && `
