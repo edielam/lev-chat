@@ -2,8 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod lam;
 mod config;
+mod db;
 
 extern crate serde_json;
+use db::db::*;
 use lam::llama::*;
 use lam::llamautils::setup_levchat_dirs;
 use lam::settings::check_settings_file;
@@ -19,6 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = setup_levchat_dirs();
     configure();
     check_settings_file();
+    initialize_database().expect("Failed to initialize database");
     init_model_state().await;
 
     let context = tauri::generate_context!();
@@ -42,7 +45,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get_setup_progress, reset_setup_progress, unzip_setup,
             check_llama_cpp_executable_exists,
             get_selected_em_model, set_em_model, get_selected_model,
-            set_model
+            set_model, create_new_chat_command, get_all_chats_command,
+            get_chat_messages_command, save_message_command, delete_chat_command
         ])
         .run(context)
         .expect("error while running tauri application");
