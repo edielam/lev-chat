@@ -34,7 +34,6 @@ pub fn initialize_database() -> Result<(), String> {
     let conn = Connection::open(&db_path)
         .map_err(|e| format!("Failed to open database: {}", e))?;
 
-    // Create chats table if not exists
     conn.execute(
         "CREATE TABLE IF NOT EXISTS chats (
             id INTEGER PRIMARY KEY,
@@ -44,7 +43,6 @@ pub fn initialize_database() -> Result<(), String> {
         [],
     ).map_err(|e| format!("Failed to create chats table: {}", e))?;
 
-    // Create messages table if not exists
     conn.execute(
         "CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY,
@@ -61,7 +59,7 @@ pub fn initialize_database() -> Result<(), String> {
 }
 
 pub fn create_new_chat(name: String) -> Result<i64, String> {
-    // Ensure database is initialized before creating a chat
+
     initialize_database().map_err(|e| format!("Database initialization failed: {}", e))?;
 
     let db_path = get_db_path().map_err(|e| format!("Failed to get DB path: {}", e))?;
@@ -144,13 +142,11 @@ pub fn delete_chat(chat_id: i64) -> Result<(), String> {
     let conn = Connection::open(db_path)
         .map_err(|e| format!("Failed to open database: {}", e))?;
 
-    // First, delete all messages associated with this chat
     conn.execute(
         "DELETE FROM messages WHERE chat_id = ?1",
         [chat_id],
     ).map_err(|e| format!("Failed to delete chat messages: {}", e))?;
 
-    // Then delete the chat itself
     conn.execute(
         "DELETE FROM chats WHERE id = ?1",
         [chat_id],
