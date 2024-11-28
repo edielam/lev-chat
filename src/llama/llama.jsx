@@ -122,6 +122,7 @@ const LamaChat = () => {
     setMessages(prev => [...prev, optimisticMessage]);
     
     let chatId = currentChatId;
+    let isNewlyCreatedChat = false;
 
     // If no current chat, create a new one
     if (!chatId) {
@@ -130,6 +131,7 @@ const LamaChat = () => {
           name: `Chat ${new Date().toLocaleString()}`
         });
         setCurrentChatId(chatId);
+        isNewlyCreatedChat = true; 
       } catch (error) {
         console.error('Failed to create new chat', error);
         return;
@@ -137,6 +139,7 @@ const LamaChat = () => {
     }
 
     // Rename the chat with the first meaningful message
+    if (isNewlyCreatedChat) {
     try {
       await invoke('rename_chat_command', { 
         chatId: chatId,
@@ -145,6 +148,7 @@ const LamaChat = () => {
     } catch (error) {
       console.error('Failed to rename chat', error);
     }
+  }
 
     // Prepare user message object
     const userMessage = {
@@ -345,6 +349,7 @@ const LamaChat = () => {
         onDeleteChat={deleteChat}
       />
         <lam.ChatContainer ref={chatContainerRef}>
+        <lam.MessageWrapper>
           {messages.map((message, index) => (
             <lam.MessageContainer key={index} isUser={message.isUser}>
               <lam.Message isUser={message.isUser}>
@@ -374,6 +379,7 @@ const LamaChat = () => {
               )}
             </lam.MessageContainer>
           ))}
+          </lam.MessageWrapper>
         </lam.ChatContainer>
 
         <lam.InputContainer>

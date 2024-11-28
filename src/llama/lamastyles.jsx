@@ -2,42 +2,42 @@ import styled, { css } from 'styled-components';
 
 export const darkTheme = {
   name: 'dark',
-  background: '#121212',
-  secondary: '#1E1E1E',
-  border: '#2C2C2C',
-  text: '#c0c0c0',
-  textStrong: '#FFFFFF',
-  accent: '#472305',
-  accentHover: '#663e1d',
-  error: '#CF6679',
-  errorHover: '#FF4081',
-  success: '#03DAC6',
-  messageBackground: '#242424',
-  inputBackground: '#1E1E1E',
-  scrollbarTrack: '#121212',
-  scrollbarThumb: '#2e1506',
-  progressbarTrack: '#275c91',
-  progressbarThumb: '#f7e7df',
+  background: '#121619',     
+  secondary: '#1E2429',         
+  border: '#2C3640', 
+  text: '#E2E8F0',             
+  textStrong: '#FFFFFF',       
+  accent: '#6D4C41',            
+  accentHover: '#543a32',       
+  error: '#E53935',     
+  errorHover: '#FF5252',   
+  success: '#43A047',    
+  messageBackground: '#1E2429', 
+  inputBackground: '#2C3640',   
+  scrollbarTrack: '#1E2429',    
+  scrollbarThumb: '#8D6E63',   
+  progressbarTrack: '#2C3640',
+  progressbarThumb: '#6D4C41',
 };
 
 export const lightTheme = {
   name: 'light',
-  background: '#F5F5F5',
-  secondary: '#FFFFFF',
-  border: '#E0E0E0',
-  text: '#333333',
-  textStrong: '#000000',
-  accent: '#a3e6df',
-  accentHover: '#2cab9e',
-  error: '#B00020',
-  errorHover: '#FF4081',
-  success: '#018786',
-  messageBackground: '#e6fffe',
-  inputBackground: '#FFFFFF',
-  scrollbarTrack: '#E0E0E0',
-  scrollbarThumb: '#a3e6df',
-  progressbarTrack: '#2a7f8c',
-  progressbarThumb: '#dff5f7',
+  background: '#F5F1E7',       
+  secondary: '#FFFFFF',         
+  border: '#E0D2C1',            
+  text: '#3A3335',              
+  textStrong: '#1A1818',        
+  accent: '#dbcabf',            
+  accentHover: '#6D4C41',       
+  error: '#C1292E',             
+  errorHover: '#A01D26',        
+  success: '#3E8914',           
+  messageBackground: '#F3E5DC', 
+  inputBackground: '#FFFFFF',   
+  scrollbarTrack: '#E9DFD3',    
+  scrollbarThumb: '#dbcabf',    
+  progressbarTrack: '#D5C1B1',  
+  progressbarThumb: '#6D4C41',  
 };
 
 export const globalStyles = css`
@@ -93,6 +93,14 @@ export const ChatContainer = styled.div`
     border-radius: 6px;
   }
 `;
+export const MessageWrapper = styled.div`
+  flex: 1;
+  max-width: 80%;
+  margin-left: 10rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
 export const MessageContainer = styled.div`
   position: relative;
   width: fit-content;
@@ -109,9 +117,9 @@ export const MessageContainer = styled.div`
 export const Message = styled.div`
   padding: 1rem;
   border-radius: 0.75rem;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: pre-wrap;
-  font-size: 15px;
+  font-size: 13.8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   width: 100%; // Ensure full width of container
   overflow-x: auto; // Allow horizontal scrolling if needed

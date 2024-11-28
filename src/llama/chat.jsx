@@ -19,9 +19,9 @@ const SidebarContainer = styled.div`
 const ToggleButton = styled.button`
   position: absolute;
   left: ${props => props.isOpen ? '250px' : '0px'};
-  top: 50%;
+  top: 30%;
   transform: translateY(-50%);
-  background-color: ${props => props.theme.secondary};
+  background-color: ${props => props.theme.accentHover};
   border: 1px solid ${props => props.theme.border};
   border-left: none;
   padding: 0.5rem;
@@ -30,7 +30,7 @@ const ToggleButton = styled.button`
   transition: left 0.3s ease;
 
   &:hover {
-    background-color: ${props => props.theme.messageBackground};
+    background-color: ${props => props.theme.accent};
   }
 `;
 
@@ -117,7 +117,7 @@ const ChatSidebar = ({
         onClick={toggleSidebar}
         title={isOpen ? "Close sidebar" : "Open sidebar"}
       >
-        {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+        {isOpen ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
       </ToggleButton>
       <SidebarContainer isOpen={isOpen}>
         <SidebarContent isOpen={isOpen}>
