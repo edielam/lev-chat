@@ -78,7 +78,7 @@ const LamaChat = () => {
       ws.onopen = () => {
         setIsConnected(true);
         const config = {
-          prompt: userMessage,
+          prompt: userMessage.content,
           temperature: 0.7,
           max_tokens: 1024
         };
