@@ -24,16 +24,16 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1a1b26;
+  background: #121619;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1a1b26;
+  background: #121619;
 }
 
 :root {
   --font-family: monospace;
-  --background-color: #1a1b26;
+  --background-color: #121619;
   --foreground-color: #fff;
 }
 
