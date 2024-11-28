@@ -46,7 +46,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             check_llama_cpp_executable_exists,
             get_selected_em_model, set_em_model, get_selected_model,
             set_model, create_new_chat_command, get_all_chats_command,
-            get_chat_messages_command, save_message_command, delete_chat_command
+            get_chat_messages_command, save_message_command, delete_chat_command,
+            rename_chat_command
         ])
         .run(context)
         .expect("error while running tauri application");

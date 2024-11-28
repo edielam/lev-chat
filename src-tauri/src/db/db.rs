@@ -158,6 +158,23 @@ pub fn delete_chat(chat_id: i64) -> Result<(), String> {
 
     Ok(())
 }
+pub fn rename_chat(chat_id: i64, new_name: String) -> Result<(), String> {
+    let db_path = get_db_path()?;
+    let conn = Connection::open(db_path)
+        .map_err(|e| format!("Failed to open database: {}", e))?;
+
+    conn.execute(
+        "UPDATE chats SET name = ?1 WHERE id = ?2",
+        params![new_name, chat_id]
+    ).map_err(|e| format!("Failed to rename chat: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn rename_chat_command(chat_id: i64, new_name: String) -> Result<(), String> {
+    rename_chat(chat_id, new_name)
+}
 
 
 #[tauri::command]
