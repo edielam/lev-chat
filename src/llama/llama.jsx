@@ -122,7 +122,7 @@ const LamaChat = () => {
     setMessages(prev => [...prev, optimisticMessage]);
     
     let chatId = currentChatId;
-    let isNewlyCreatedChat = false;
+    // let isNewlyCreatedChat = false;
 
     // If no current chat, create a new one
     if (!chatId) {
@@ -131,15 +131,12 @@ const LamaChat = () => {
           name: `Chat ${new Date().toLocaleString()}`
         });
         setCurrentChatId(chatId);
-        isNewlyCreatedChat = true; 
+        // isNewlyCreatedChat = true; 
       } catch (error) {
         console.error('Failed to create new chat', error);
         return;
       }
     }
-
-    // Rename the chat with the first meaningful message
-    if (isNewlyCreatedChat) {
     try {
       await invoke('rename_chat_command', { 
         chatId: chatId,
@@ -148,7 +145,18 @@ const LamaChat = () => {
     } catch (error) {
       console.error('Failed to rename chat', error);
     }
-  }
+
+    // Rename the chat with the first meaningful message
+  //   if (isNewlyCreatedChat) {
+  //   try {
+  //     await invoke('rename_chat_command', { 
+  //       chatId: chatId,
+  //       newName: input.trim().split(' ').slice(0, 5).join(' ').substring(0, 50)
+  //     });
+  //   } catch (error) {
+  //     console.error('Failed to rename chat', error);
+  //   }
+  // }
 
     // Prepare user message object
     const userMessage = {

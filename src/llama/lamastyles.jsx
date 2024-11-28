@@ -96,10 +96,10 @@ export const ChatContainer = styled.div`
 export const MessageWrapper = styled.div`
   flex: 1;
   max-width: 80%;
-  margin-left: 10rem;
+  margin-left: 15rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 2rem;
 `;
 export const MessageContainer = styled.div`
   position: relative;
@@ -117,9 +117,9 @@ export const MessageContainer = styled.div`
 export const Message = styled.div`
   padding: 1rem;
   border-radius: 0.75rem;
-  line-height: 1.5;
+  line-height: 2;
   white-space: pre-wrap;
-  font-size: 13.8px;
+  font-size: 14px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   width: 100%; // Ensure full width of container
   overflow-x: auto; // Allow horizontal scrolling if needed

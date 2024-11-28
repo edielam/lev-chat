@@ -8,12 +8,73 @@ import { Copy, CheckCheck } from 'lucide-react';
 import * as lam from './lamastyles'
 
 const MarkdownContainer = styled.div`
-  a {
-    color: ${props => props.theme.accent};
-  }
-
   pre {
     background-color: ${props => props.theme.secondary} !important;
+    // border: 1px solid ${props => props.theme.border};
+    border-radius: 0.5rem;
+    padding: 0.8rem;
+    overflow-x: auto;
+  }
+
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    font-size: 0.9rem;
+  }
+    .copy-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: ${props => props.theme.background};
+    border: 1px solid ${props => props.theme.border};
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+
+  a {
+    color: ${props => props.theme.accent};
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: ${props => props.theme.accentHover};
+      text-decoration: underline;
+    }
+  }
+
+  blockquote {
+    border-left: 4px solid ${props => props.theme.accent};
+    margin: 1rem 0;
+    padding-left: 1rem;
+    font-style: italic;
+    color: ${props => props.theme.text}80;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+
+  th, td {
+    border: 1px solid ${props => props.theme.border};
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  th {
+    background-color: ${props => props.theme.secondary};
+    color: ${props => props.theme.textStrong};
   }
 `;
 
@@ -51,10 +112,9 @@ const CodeBlock = ({ children, language,  isDarkMode }) => {
   };
 
   const StreamingMarkdownRenderer = ({ text, isDarkMode }) => {
-    const isModelLine = text.trim().startsWith('Model:') && text.includes('.gguf');
     const cleanText = (inputText) => {
         // Replace multiple consecutive newlines with two newlines maximum
-        return inputText.replace(/\n{3,}/g, '\n\n')
+        return inputText.replace(/\n\n/g, '\n')
           // Remove leading and trailing whitespace from each line
           .split('\n')
           .map(line => line.trim())
@@ -62,18 +122,8 @@ const CodeBlock = ({ children, language,  isDarkMode }) => {
           .filter(line => line.length > 0)
           .join('\n');
       };
-  
     return (
       <MarkdownContainer>
-        {isModelLine ? (
-        <div style={{ 
-          color: isDarkMode ? '#00ff00' : 'green', 
-          fontWeight: 'bold',
-          fontStyle: 'italic'
-        }}>
-          {text}
-        </div>
-      ) : (
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -91,9 +141,8 @@ const CodeBlock = ({ children, language,  isDarkMode }) => {
             },
           }}
         >
-         {cleanText(text)}
+          {cleanText(text)}
         </ReactMarkdown>
-         )}
       </MarkdownContainer>
     );
   };

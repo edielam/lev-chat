@@ -611,3 +611,4 @@ const RAGSidebar = ({onToggle}) => {
     };
 
 export default RAGSidebar;
+
