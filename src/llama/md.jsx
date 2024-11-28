@@ -141,7 +141,7 @@ const CodeBlock = ({ children, language,  isDarkMode }) => {
             },
           }}
         >
-          {cleanText(text)}
+          {text}
         </ReactMarkdown>
       </MarkdownContainer>
     );

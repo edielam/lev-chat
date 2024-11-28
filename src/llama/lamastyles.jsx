@@ -119,7 +119,7 @@ export const MessageContainer = styled.div`
 export const Message = styled.div`
   padding: 1rem;
   border-radius: 0.75rem;
-  line-height: 2;
+  line-height: 1.5;
   white-space: pre-wrap;
   font-size: 14px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
