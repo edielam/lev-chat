@@ -79,7 +79,7 @@ const ChatItem = styled.div`
   }
 
   ${props => props.isActive && `
-    background-color: ${props.theme.messageBackground};
+    background-color: ${props.theme.chatBar};
     font-weight: bold;
   `}
 `;
